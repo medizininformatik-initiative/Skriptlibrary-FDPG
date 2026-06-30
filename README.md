@@ -15,7 +15,7 @@ python3 validate_consent.py import/[patienten].ndjson [output.csv]
 outputs a output.csv that contains validation wether the datapoints in the TORCH extracted NDJSON are covered by the consent policies
 
 
-## Further removal of relative datapoints after selection of variables by TORCH
+## reduce-csvs - Further removal of relative datapoints after selection of variables by TORCH
 This Script removes datapoints in the CSV output relative to a defining criteria (in this case all datapoints after procedure "Somnography")
 
 
