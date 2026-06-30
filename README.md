@@ -1,23 +1,30 @@
 # Skriptlibrary-FDPG
 
-## Ausführen der Pipeline:
-aether pipeline start somno-pipeline.yml Somnolink_18_06_2026_v0.9.json
+## Introduction
+This library builds on the Data-Use-Pipeline described here:
+https://medizininformatik-initiative.github.io/dataportal/data-node/dup-pipeline.html
 
+The DUP-Pipeline outputs either 1) project specific FHIR Bundles (NDJSON), 2) pseudonomized, de-identified FHIR Bundles, or 3) multiple CSVs (one per Feature) linked by logical references
 
-## Zum Validieren des CONSENT Handling:
+Scripts provided here execute additional steps that are designed to support validation and further refinement of the data at the sites.
+
+## Validate TORCH CONSENT Handling:
 validate_consent_v2.py
 python3 validate_consent.py import/[patienten].ndjson [output.csv]
 
 
-### Das Somnolink Projekt hat eine Zusatzanforderung an die Minimierung der Daten (Datensparsamkeit) aus dem Antrag die aktuell nicht von TORCH wahrgenommen werden kann. Deshalb wird dieses Skript zugesteuert.
-Das Skript entfernt alle Datenpunkte des Patienten nach dem Zeitpunkt des performed.date der Prozedur (Somnographie).
+### Further removal of relative datapoints after selection of variables by TORCH
+This Script removes datapoints in the CSV output relative to a defining criteria (in this case all datapoints after procedure "Somnography")
 
 
-## Das Skript:
+## Script:
 script/reduce_csvs.py
-## Die Config zum Skript:
+## Config:
 config/config.json
 
-Das Skript muss im CSV Ordner des DUP-Pipeline Ordner jobs/[job-hash]/csv/ mit der config Datei abgelegt werden und wie folgt ausgeführt werden:
+Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
 python3 reduce_csvs.py
-output sind *_reduced.csv Dateien mit den reduzierten Inhalten sowie removed_datapoints.csv (enthält die entfernten Datenpunkte) und reduction_report.csv (logs)
+output files are:
+*_reduced.csv with the reduced csv files, 
+removed_datapoints.csv contains datapoints that were removed
+reduction_report.csv (logs)
