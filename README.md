@@ -13,13 +13,13 @@ validate_consent_v2.py
 python3 validate_consent.py import/[patienten].ndjson [output.csv]
 
 
-### Further removal of relative datapoints after selection of variables by TORCH
+## Further removal of relative datapoints after selection of variables by TORCH
 This Script removes datapoints in the CSV output relative to a defining criteria (in this case all datapoints after procedure "Somnography")
 
 
-## Script:
+### Script:
 script/reduce_csvs.py
-## Config:
+### Config:
 config/config.json
 
 Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
