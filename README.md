@@ -25,7 +25,9 @@ reduce-csvs/reduce_csvs.py
 reduce-csvs/config.json
 
 Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
+
 python3 reduce_csvs.py
+
 output files are:
 *_reduced.csv with the reduced csv files, 
 removed_datapoints.csv contains datapoints that were removed
@@ -39,10 +41,10 @@ This Script removes patients in the CSV output if the age of the patient at for 
 ### Script and Config:
 /reduce_patients_by_age
 
-
-
 Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
+
 python3 reduce_patients_by_age.py
+
 output files are:
 *_reduced.csv with the reduced (removed patients) csv files, 
 removed_patient.csv contains patients that were removed and basic information on removal reasons
