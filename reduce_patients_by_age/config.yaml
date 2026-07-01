@@ -1,0 +1,29 @@
+# Configuration for reduce_patients_by_age.py
+# No third-party YAML package is required; this script supports simple key/value and list syntax.
+
+patient_column: "patient"
+
+person_id_column: "id"
+
+birthdate_column: "Patient_birthDate"
+
+condition_file_contains: "Condition"
+
+person_file_contains: "Person"
+
+diagnosis_date_columns:
+  - "Condition_onset_X_Onsetdatetime"
+  - "Condition_onset_X_Onsetperiod_end"
+  - "Condition_onset_X_Onsetperiod_start"
+  - "Condition_recordedDate"
+
+age_threshold: 19
+
+mode: "remove_if_younger"
+
+alternate_patient_columns:
+  - "subject"
+  - "Patient"
+  - "patient_reference"
+  - "Patient_reference"
+
