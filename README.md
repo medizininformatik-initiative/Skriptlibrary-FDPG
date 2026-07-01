@@ -10,8 +10,9 @@ Scripts provided here execute additional steps that are designed to support vali
 
 ## Validate TORCH CONSENT Handling:
 validate_consent_v2.py
+```bash
 python3 validate_consent.py import/[patienten].ndjson [output.csv]
-
+```
 outputs a output.csv that contains validation wether the datapoints in the TORCH extracted NDJSON are covered by the consent policies
 
 
@@ -25,9 +26,9 @@ reduce-csvs/reduce_csvs.py
 reduce-csvs/config.json
 
 Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
-
+```bash
 python3 reduce_csvs.py
-
+```
 output files are:
 *_reduced.csv with the reduced csv files, 
 removed_datapoints.csv contains datapoints that were removed
@@ -42,9 +43,9 @@ This Script removes patients in the CSV output if the age of the patient at for 
 /reduce_patients_by_age
 
 Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
-
+```
 python3 reduce_patients_by_age.py
-
+```
 output files are:
 *_reduced.csv with the reduced (removed patients) csv files, 
 removed_patient.csv contains patients that were removed and basic information on removal reasons
