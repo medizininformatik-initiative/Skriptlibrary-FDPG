@@ -20,9 +20,9 @@ This Script removes datapoints in the CSV output relative to a defining criteria
 
 
 ### Script:
-script/reduce_csvs.py
+reduce-csvs/reduce_csvs.py
 ### Config:
-config/config.json
+reduce-csvs/config.json
 
 Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
 python3 reduce_csvs.py
@@ -30,3 +30,21 @@ output files are:
 *_reduced.csv with the reduced csv files, 
 removed_datapoints.csv contains datapoints that were removed
 reduction_report.csv (logs)
+
+
+## reduce-patients_by_age - Further removal of patients by age in relation to a timestamp of for instance a condition
+This Script removes patients in the CSV output if the age of the patient at for instance at the time of condition recording is under a certain threshold
+
+
+### Script and Config:
+/reduce_patients_by_age
+
+
+
+Script and config must be present and executed in the folder jobs/[job-hash]/csv/ 
+python3 reduce_patients_by_age.py
+output files are:
+*_reduced.csv with the reduced (removed patients) csv files, 
+removed_patient.csv contains patients that were removed and basic information on removal reasons
+
+
