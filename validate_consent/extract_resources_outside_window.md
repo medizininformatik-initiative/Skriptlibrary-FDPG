@@ -1,4 +1,4 @@
-# extract_resources_outside_consent.py
+# extract_resources_outside_window.py
 
 Extracts all resource entries that fall **outside** a patient's consent window from a consent-validation CSV, and 
 produces two output files for cleanup / removal workflows.
@@ -24,7 +24,7 @@ Only rows where `timestamp_in_window` is `NO` (case-insensitive) are extracted.
 ## Usage
 
 ```bash
-python extract_resources_outside_consent.py --consent consent_validation_[timstamp].csv
+python extract_resources_outside_window.py --consent consent_validation_[timstamp].csv
 ```
 
 ## Output
