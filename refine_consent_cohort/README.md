@@ -45,7 +45,7 @@ Hilfe anzeigen: `python crtdl_filter.py --help`
    - Medikation: Ein Code aus der Medikations-Kerntabelle gilt für alle Patienten, deren Medikationsreferenz
      (Spalten mit `Medicationreference`) auf die jeweilige Medication-ID verweist.
 5. **Matrix erstellen:** Pro Patient und Kriterium wird `1` (erfüllt) oder `0` (nicht erfüllt) vermerkt.
-6. **Ausschluss bestimmen:** Ein Patient wird ausgeschlossen, wenn in einer UND-Gruppe alle Kriterien `0` sind.
+6. **Ausschluss bestimmen:** Eine Gruppe ist erfüllt, sobald mindestens ein Kriterium darin 1 ist. Ein Patient wird ausgeschlossen, wenn mindestens eine Gruppe nicht erfüllt ist, also wenn alle Kriterien dieser Gruppe 0 sind.
 7. **Dateien schreiben:** Die Ergebnisdateien werden im Ausgabeordner abgelegt.
 
 ## Logik der Kriterien
