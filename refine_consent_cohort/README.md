@@ -81,9 +81,3 @@ Die Konsole zeigt zusätzlich:
 - Die Spaltenerkennung für Patienten sucht nur nach den oben genannten Namen. Abweichende Spaltennamen
   musst du mit `--patient-column` angeben.
 
-## Beispiel
-
-Mit der mitgelieferten Test-CRTDL (`H67.1` ODER `C16.9`, Diagnose) und 50 Patienten:
-
-- 7 Patienten erfüllen mindestens ein Kriterium und bleiben erhalten.
-- 43 Patienten stehen in `to-be-excluded.csv`.
