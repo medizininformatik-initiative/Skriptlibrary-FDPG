@@ -22,6 +22,8 @@ Logik:
   - Äußere Liste der inclusionCriteria = UND, innere Liste = ODER.
   - Codes innerhalb eines Kriteriums (termCodes) sind ODER-verknüpft.
   - Ausschluss: Patient fällt raus, wenn in einer UND-Gruppe ALLE Kriterien 0 sind.
+  - Präfix-Match (nur ICD-10-Codes, Standard): Kriterium 'R26' matcht auch 'R26.1',
+    'R26.10' und 'R261'. Mit --exact-only wird wie bisher exakt verglichen.
 
 Aufruf:
   python crtdl_filter.py --crtdl CRTDL.json --csv-dir ./csv --out-dir ./output
@@ -32,7 +34,7 @@ import json
 import os
 import re
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 # Consent-/Demografie-Kriterien, die nicht berücksichtigt werden
 CONSENT_RE = re.compile(
@@ -41,6 +43,23 @@ CONSENT_RE = re.compile(
 )
 # Standard: Referenz 'Typ/ID' -> 'ID'
 DEFAULT_ID_RE = r"^(?:[A-Za-z]+/)?([^/]+?)(?:/_history/.*)?$"
+
+
+def is_icd(system):
+    """True, wenn das Codesystem ICD-10(-GM) ist (hierarchische Codes, Präfix-Match sinnvoll)."""
+    s = (system or "").lower()
+    return "icd-10" in s or "icd10" in s
+
+
+def code_pattern(code, prefix):
+    r"""Regex für einen Kriteriums-Code.
+    exakt:  ^R26$
+    Präfix: ^R26(?:\.?[0-9A-Za-z]+)?$  -> R26, R26.1, R26.10, R261 (nicht R2, nicht R27)
+    """
+    esc = re.escape(code)
+    if prefix:
+        return re.compile(rf"^{esc}(?:\.?[0-9A-Za-z]+)?$")
+    return re.compile(rf"^{esc}$")
 
 
 def read_csv_rows(path):
@@ -100,6 +119,8 @@ def main():
     ap.add_argument("--exclude-tables-containing", default="referenz",
                     help="Tabellen, deren Dateiname dies enthält, werden nicht als Kriterium geprüft "
                          "(Default: 'referenz' -> referenzierte Fälle/Medikation)")
+    ap.add_argument("--exact-only", action="store_true",
+                    help="Nur exakte Code-Treffer (kein Präfix-Match für ICD-10-Codes)")
     args = ap.parse_args()
 
     id_re = args.patient_id_regex or DEFAULT_ID_RE
@@ -125,12 +146,15 @@ def main():
             codes = [t["code"].strip() for t in crit.get("termCodes", []) if t.get("code")]
             if not codes:
                 continue
+            systems = {t["code"].strip(): t.get("system", "")
+                       for t in crit.get("termCodes", []) if t.get("code")}
             crit_counter += 1
             label = next((t.get("display") for t in crit["termCodes"] if t.get("display")), codes[0])
             group.append({
                 "idx": crit_counter,
                 "label": label,
                 "codes": codes,
+                "systems": systems,
                 "context": crit.get("context", {}).get("code", ""),
             })
         if group:
@@ -188,21 +212,33 @@ def main():
     print(f"Patienten gesamt (aus Tabellen ohne Referenz-Tabellen): {len(universe)}")
 
     # ---------- 4) Codes suchen ----------
-    code_set = {c for crit in criteria for c in crit["codes"]}
-    hits = defaultdict(list)  # code -> [(tabellenname, zeilenindex, spaltenindex)]
+    # Pro Kriteriums-Code ein Matcher: ICD-Codes als Präfix (Unterkategorien), übrige exakt
+    matchers = {}
+    for crit in criteria:
+        for code in crit["codes"]:
+            prefix = (not args.exact_only) and is_icd(crit["systems"].get(code, ""))
+            matchers[code] = code_pattern(code, prefix)
+    hits = defaultdict(list)  # Kriteriums-Code -> [(tabellenname, zeilenindex, spaltenindex, gefundener_wert)]
     for n, t in matchable.items():
         for ri, row in enumerate(t["rows"]):
             for ci, val in enumerate(row):
                 v = val.strip()
-                if v in code_set:
-                    hits[v].append((n, ri, ci))
+                if not v:
+                    continue
+                for code, pat in matchers.items():
+                    if pat.match(v):
+                        hits[code].append((n, ri, ci, v))
 
     print("\nCode-Suche (Tabelle / Spalte):")
     for crit in criteria:
         for code in crit["codes"]:
-            locs = sorted({(n, tables[n]["header"][ci]) for n, _, ci in hits.get(code, [])})
+            found = hits.get(code, [])
+            locs = sorted({(n, tables[n]["header"][ci]) for n, _, ci, _ in found})
             if locs:
-                print(f"  K{crit['idx']} {code}: " + "; ".join(f"{n} / {col}" for n, col in locs))
+                values = Counter(v for _, _, _, v in found)
+                vtxt = ", ".join(f"{v} ({k}x)" for v, k in sorted(values.items()))
+                print(f"  K{crit['idx']} {code}: " + "; ".join(f"{n} / {col}" for n, col in locs)
+                      + f" | gefundene Werte: {vtxt}")
             else:
                 print(f"  K{crit['idx']} {code}: NICHT GEFUNDEN")
 
@@ -232,7 +268,7 @@ def main():
     matched = {c["idx"]: set() for c in criteria}
     for crit in criteria:
         for code in crit["codes"]:
-            for n, ri, _ in hits.get(code, []):
+            for n, ri, _, _ in hits.get(code, []):
                 t = tables[n]
                 if t["pcol"] is not None and t["pids"][ri]:
                     matched[crit["idx"]].add(t["pids"][ri])
