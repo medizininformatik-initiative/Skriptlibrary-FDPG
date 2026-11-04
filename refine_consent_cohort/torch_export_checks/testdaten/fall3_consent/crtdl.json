@@ -1,0 +1,84 @@
+{
+ "cohortDefinition": {
+  "inclusionCriteria": [
+   [
+    {
+     "termCodes": [
+      {
+       "code": "2.16.840.1.113883.3.1937.777.24.5.3.8",
+       "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3",
+       "display": "2.16.840.1.113883.3.1937.777.24.5.3.8"
+      }
+     ],
+     "context": {
+      "code": "Einwilligung",
+      "display": "Einwilligung"
+     }
+    },
+    {
+     "termCodes": [
+      {
+       "code": "2.16.840.1.113883.3.1937.777.24.5.3.6",
+       "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3",
+       "display": "2.16.840.1.113883.3.1937.777.24.5.3.6"
+      }
+     ],
+     "context": {
+      "code": "Einwilligung",
+      "display": "Einwilligung"
+     }
+    }
+   ],
+   [
+    {
+     "termCodes": [
+      {
+       "code": "G43",
+       "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+       "display": "G43"
+      }
+     ],
+     "context": {
+      "code": "Diagnose",
+      "display": "Diagnose"
+     }
+    },
+    {
+     "termCodes": [
+      {
+       "code": "3-10...3-13",
+       "system": "http://fhir.de/CodeSystem/bfarm/ops",
+       "display": "3-10...3-13"
+      }
+     ],
+     "context": {
+      "code": "Prozedur",
+      "display": "Prozedur"
+     }
+    }
+   ],
+   [
+    {
+     "termCodes": [
+      {
+       "code": "C07",
+       "system": "http://fhir.de/CodeSystem/bfarm/atc",
+       "display": "C07"
+      }
+     ],
+     "context": {
+      "code": "Medikamentenverabreichung",
+      "display": "Medikamentenverabreichung"
+     }
+    }
+   ]
+  ]
+ },
+ "dataExtraction": {
+  "attributeGroups": [
+   {
+    "name": "Diagnose"
+   }
+  ]
+ }
+}

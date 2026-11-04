@@ -1,0 +1,5 @@
+id,patient,Condition_code_codingIcd10gm_code,note_text
+c1,Patient/p1,G43.1,x
+c2,Patient/p2,G430,x
+c3,Patient/p3,I67.88,x
+c4,Patient/p5,R26.8,G43.1

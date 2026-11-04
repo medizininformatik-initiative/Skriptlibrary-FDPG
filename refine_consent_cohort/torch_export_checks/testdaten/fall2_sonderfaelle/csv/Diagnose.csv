@@ -1,0 +1,4 @@
+id,patient,Condition_code_codingIcd10gm_code,Condition_note
+c1,Patient/p1,R26.8,Größe
+c2,Patient/p2,R27,x
+c3,Patient/p3,R26,x
