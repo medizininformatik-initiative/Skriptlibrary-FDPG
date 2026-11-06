@@ -140,15 +140,20 @@ def _open_text(path):
     return open(path, encoding="utf-8")
 
 
-def expand_paths(paths, suffixes=(".ndjson", ".ndjson.zst", ".json")):
+def expand_paths(paths, suffixes=(".ndjson", ".ndjson.zst", ".json"), skip_audit=False):
     """Resolve files and directories (non-recursive) to a sorted list of files."""
     out = []
     for p in paths:
         if os.path.isdir(p):
             for name in sorted(os.listdir(p)):
                 full = os.path.join(p, name)
-                if os.path.isfile(full) and name.endswith(suffixes):
-                    out.append(full)
+                if not (os.path.isfile(full) and name.endswith(suffixes)):
+                    continue
+                # TORCH audit files (<batchId>_consent.ndjson) are not exported data -> belong to --consent-audit
+                if skip_audit and name.endswith(("_consent.ndjson", "_consent.ndjson.zst")):
+                    print(f"[WARN] skipping audit file in --data: {name} (use --consent-audit)", file=sys.stderr)
+                    continue
+                out.append(full)
         elif os.path.isfile(p):
             out.append(p)
         else:
@@ -414,7 +419,7 @@ def sys_key(system):
 def load_data(paths):
     """Patient ID -> list of resources; plus core resources (no patient reference)."""
     by_patient, core = defaultdict(list), []
-    for path in expand_paths(paths):
+    for path in expand_paths(paths, skip_audit=True):
         for _, obj in iter_lines(path):
             res = resources_of(obj)
             bundle_pat = next((r.get("id") for r in res if r.get("resourceType") == "Patient"), None)
