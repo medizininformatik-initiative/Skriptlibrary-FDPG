@@ -82,9 +82,9 @@ python3 /pfad/zu/refine_consent_cohort/filter_by_crtdl.py \
 ## 5. Empfohlener Ablauf
 
 1. **Prüflauf** ohne gefilterte Tabellen:
-   ```bash
+```bash
    python3 filter_by_crtdl.py --crtdl <crtdl> --csv-dir <job>/csv --out-dir <job>/filter_by_crtdl --no-include
-   ```
+```
 2. **Konsolenausgabe prüfen** (siehe [11](#11-konsolenausgabe)): Werden alle Kriterien gefunden?
    Ist der Anteil ausgeschlossener Patienten plausibel?
 3. **Stichprobe** der ausgeschlossenen Patienten prüfen (siehe [12](#12-zusammenspiel-mit-der-consent-prüfung)).
@@ -142,6 +142,10 @@ Wie ein Code gesucht wird, hängt vom Codesystem (`system`) im `termCode` ab:
 | OPS-Bereich | `start...ende`, Grenzen eingeschlossen | `3-10...3-13` → `3-100`, `3-13x`, nicht `3-20x` |
 | ATC (`atc`) | Präfix | `C07` → `C07AB02` |
 | alle anderen (LOINC, SNOMED, …) | exakt | `2823-3` → nur `2823-3` |
+
+Bei SNOMED und LOINC sieht man den Codes die Hierarchie nicht an. Steht in der CRTDL ein Oberbegriff
+und in den Daten nur Unterbegriffe, findet das Skript nichts und schließt die Patienten zu Unrecht aus.
+Beispiel im [README](../README.md#2-konsolenausgabe-prüfen).
 
 Mit `--exact-only` wird überall exakt verglichen.
 
@@ -234,13 +238,12 @@ Hier sieht man, ob die hierarchische Suche das Richtige findet: Jeder `daten_cod
 - **Berücksichtigte Einschlusskriterien:** Gruppen und Kriterien mit Suchregel (`icd`, `ops`, `range`,
   `prefix`, `exact`). Darunter, was übersprungen wurde und warum.
 - **Tabellen:** erkanntes Trennzeichen, Patienten pro Tabelle, Rolle.
-- **Code-Suche:** pro Code die Fundstellen und Beispiele der gefundenen Codes.
-  `NICHT GEFUNDEN` heißt: Das Kriterium ist für alle Patienten 0. Steht es allein in einer Gruppe,
-  werden alle Patienten ausgeschlossen. Das ist fast immer ein Hinweis auf ein Problem
-  (falsches System, andere Spalte, Kriterium nicht im Export).
+- **Code-Suche:** pro Code die Fundstellen und die gefundenen Codes. `NICHT GEFUNDEN` heißt meist, dass
+  der Code bei allen Patienten nur vor der Einwilligung dokumentiert ist. Beispiele und Ausnahmen
+  (SNOMED, LOINC) im [README](../README.md#2-konsolenausgabe-prüfen).
 - **Patienten pro Kriterium** und **Ausgeschlossen: X von Y (Z %)**.
 
-Ein hoher Anteil Ausgeschlossener ist ein Warnsignal (in der Pilotierung für VERT-CARE lag er bei unter 5 %).
+Ein hoher Anteil Ausgeschlossener ist ein Warnsignal (im Pilot lag er unter 5 %).
 
 ---
 
@@ -283,6 +286,7 @@ im Export, ist das ein Hinweis auf ein anderes Problem (Mapping, DIMP, Flattenin
 - Alter, Geschlecht, `exclusionCriteria`, Wert- und Zeitfilter werden nicht ausgewertet (siehe [7](#7-geprüfte-kriterien)).
 - Kriterien auf Ressourcen, die die CRTDL gar nicht extrahiert, können nie gefunden werden. Das Skript
   meldet sie als `NICHT GEFUNDEN`.
+- SNOMED- und LOINC-Oberbegriffe in der CRTDL werden nicht in Unterbegriffe aufgelöst (siehe [8](#8-code-suche-hierarchie)).
 - Die Patientenspalte wird nur unter `patient`/`subject` bzw. `id` gesucht, sonst `--patient-column`.
 - Das Skript filtert nach **Patienten**. Einzelne Ressourcen außerhalb des Consent-Fensters entfernt
   es nicht, das ist Aufgabe von TORCH.

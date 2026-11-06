@@ -9,8 +9,8 @@ entfernen.
 
 ## Pilot
 
-Getestet an der Ausleitung **VERT-CARE** (rund 2.000 Patienten, Einschlusskriterien: ICD-Codes,
-Consent mit Retro-Nutzung und Encounter-Shift).
+Getestet an einer vollständigen Ausleitung (**VERT-CARE**, Einschlusskriterien: ICD-Codes, Consent mit
+Retro-Nutzung und Encounter-Shift).
 
 **Ergebnis:**
 
