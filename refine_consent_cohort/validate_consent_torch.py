@@ -55,7 +55,7 @@ Inclusion check (--inclusion-check, needs --crtdl and filter_by_crtdl.py in the 
   resources (same code search as filter_by_crtdl.py). Patients without a fulfilled criterion are
   the ones filter_by_crtdl.py excludes - here with their IDs BEFORE DIMP and their consent window.
   consent_inclusion.csv   patients without fulfilled criterion: unmet groups, window, retro, shift.
-                          Basis for checking these patients in the local source data (see DETAILS_consent.md)
+                          Basis for checking these patients in the local source data (see docs/DETAILS_consent.md)
 
 Output (--out-dir)
   consent_resources.csv   one row per checked resource with status and note

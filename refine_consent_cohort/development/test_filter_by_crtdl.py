@@ -3,7 +3,7 @@
 Tests für filter_by_crtdl.py und validate_consent_torch.py --inclusion-check (nur Standardbibliothek).
 
 Aufruf (von überall):
-  python3 /pfad/zu/torch_export_checks/test_filter_by_crtdl.py
+  python3 /pfad/zu/refine_consent_cohort/development/test_filter_by_crtdl.py
 """
 import csv
 import os
@@ -12,9 +12,10 @@ import sys
 import tempfile
 import unittest
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(HERE, "filter_by_crtdl.py")
-CONSENT_SCRIPT = os.path.join(HERE, "validate_consent_torch.py")
+HERE = os.path.dirname(os.path.abspath(__file__))       # .../refine_consent_cohort/development
+SCRIPTS = os.path.dirname(HERE)                          # the scripts live one level up
+SCRIPT = os.path.join(SCRIPTS, "filter_by_crtdl.py")
+CONSENT_SCRIPT = os.path.join(SCRIPTS, "validate_consent_torch.py")
 DATA = os.path.join(HERE, "testdaten")
 
 

@@ -6,10 +6,10 @@ Wendet die Einschlusskriterien einer CRTDL auf die geflatteten CSV-Tabellen eine
 Exports an und reduziert die Tabellen auf Patienten, bei denen die Kriterien in den
 exportierten Daten (also im Einwilligungszeitraum) tatsächlich erfüllt sind.
 
-Ausführliche Beschreibung: README.md
+Ausführliche Beschreibung: README.md, docs/DETAILS_filter.md
 
 Aufruf:
-  python3 /pfad/zu/torch_export_checks/filter_by_crtdl.py --crtdl CRTDL.json --csv-dir <job>/csv --out-dir <ausgabe>
+  python3 /pfad/zu/refine_consent_cohort/filter_by_crtdl.py --crtdl CRTDL.json --csv-dir <job>/csv --out-dir <ausgabe>
 """
 import argparse
 import csv

@@ -1,6 +1,6 @@
 # filter_by_crtdl.py – Details
 
-Ausführliche Beschreibung zu Funktion und Nutzung. Für den schnellen Einstieg siehe [README.md](README.md).
+Ausführliche Beschreibung zu Funktion und Nutzung. Für den schnellen Einstieg siehe [README.md](../README.md).
 
 ## Inhalt
 
@@ -54,7 +54,7 @@ Das Skript ist **von überall** aufrufbar. Alle Pfade werden relativ zum aktuell
 angegeben, das Skript selbst braucht keinen bestimmten Arbeitsordner.
 
 ```bash
-python3 /pfad/zu/torch_export_checks/filter_by_crtdl.py \
+python3 /pfad/zu/refine_consent_cohort/filter_by_crtdl.py \
   --crtdl  CRTDL.json \
   --csv-dir jobs/<job>/csv \
   --out-dir jobs/<job>/filter_by_crtdl
@@ -254,7 +254,7 @@ Patient nach der TORCH-Logik nach und prüft jede exportierte Ressource dagegen.
 (vor DIMP).
 
 ```bash
-python3 /pfad/zu/torch_export_checks/validate_consent_torch.py \
+python3 /pfad/zu/refine_consent_cohort/validate_consent_torch.py \
   --data jobs/<job>/import --crtdl <crtdl> \
   --encounter-shift on --shift-class IMP --shift-max-days <wie TORCH> \
   --today <Exportdatum> --out-dir jobs/<job>/consent_report \
@@ -305,7 +305,7 @@ Patientendaten. Für eine Ausleitung braucht man sie nicht.
 einen temporären Ordner, nichts in die eigenen Daten.
 
 ```bash
-python3 /pfad/zu/torch_export_checks/test_filter_by_crtdl.py
+python3 /pfad/zu/refine_consent_cohort/development/test_filter_by_crtdl.py
 ```
 
 **Ergebnis:** Pro Test eine Zeile, am Ende die Zusammenfassung:
@@ -323,7 +323,7 @@ OK
   und was erwartet bzw. herausgekommen ist. Meist hat eine Änderung am Skript die Code-Suche oder die
   Ausschlusslogik verändert. Dann die Änderung prüfen, bevor das Skript für eine Ausleitung genutzt wird.
 
-**Testdaten** (`testdaten/`): Jeder Fall ist ein Ordner mit einer CRTDL und Daten im selben Format wie
+**Testdaten** (`development/testdaten/`): Jeder Fall ist ein Ordner mit einer CRTDL und Daten im selben Format wie
 eine echte Ausleitung.
 
 | Fall | Inhalt | Was geprüft wird |
@@ -335,14 +335,14 @@ eine echte Ausleitung.
 Man kann die Skripte auch von Hand auf einen Fall loslassen, um zu sehen, wie die Ausgabe aussieht:
 
 ```bash
-python3 /pfad/zu/torch_export_checks/filter_by_crtdl.py \
-  --crtdl   /pfad/zu/torch_export_checks/testdaten/fall1_standard/crtdl.json \
-  --csv-dir /pfad/zu/torch_export_checks/testdaten/fall1_standard/csv \
+python3 /pfad/zu/refine_consent_cohort/filter_by_crtdl.py \
+  --crtdl   /pfad/zu/refine_consent_cohort/development/testdaten/fall1_standard/crtdl.json \
+  --csv-dir /pfad/zu/refine_consent_cohort/development/testdaten/fall1_standard/csv \
   --out-dir /tmp/test_filter --no-include
 ```
 
 Erwartet: `p3`, `p5` und `p6` werden ausgeschlossen.
 
-**Neuen Fall ergänzen** (z.B. nach einem Fehler in einer echten Ausleitung): Ordner unter `testdaten/`
+**Neuen Fall ergänzen** (z.B. nach einem Fehler in einer echten Ausleitung): Ordner unter `development/testdaten/`
 mit `crtdl.json` und `csv/` anlegen, nur künstliche IDs und Daten verwenden, und in
-`test_filter_by_crtdl.py` eine Klasse nach dem Muster der vorhandenen ergänzen.
+`development/test_filter_by_crtdl.py` eine Klasse nach dem Muster der vorhandenen ergänzen.

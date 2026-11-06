@@ -40,7 +40,7 @@ Consent mit Retro-Nutzung und Encounter-Shift).
 
 ## Änderungen
 
-- Ordner `refine_consent_cohort/torch_export_checks` ([README](README.md)) mit zwei Skripten:
+- Ordner `refine_consent_cohort` ([README](../../README.md)) mit zwei Skripten:
   - `filter_by_crtdl.py` (Version 2.0, vorher `crtdl_filter.py`): Verarbeitung im Streaming,
     Erkennung von Kodierung und Trennzeichen, OPS-Bereiche, ATC über die Medikations-Kerntabelle,
     Referenztabellen werden mitgefiltert, Prüflauf mit `--no-include`, exakte Suche mit `--exact-only`.
@@ -48,8 +48,8 @@ Consent mit Retro-Nutzung und Encounter-Shift).
   - `validate_consent_torch.py` (Consent-Prüfung vor DIMP) mit neuer Option `--inclusion-check`:
     prüft die Einschlusskriterien vor DIMP und listet die betroffenen Patienten mit ihrem
     Consent-Fenster auf. Damit lassen sich die Ausschlüsse in den eigenen Quelldaten nachprüfen.
-- Neues README mit Quickstart, Details in `DETAILS_filter.md` und `DETAILS_consent.md`.
-- Tests mit künstlichen Daten (`test_filter_by_crtdl.py`, `testdaten/`).
+- Neues README mit Quickstart, Details in `docs/DETAILS_filter.md` und `docs/DETAILS_consent.md`.
+- Tests mit künstlichen Daten (`development/`).
 - Nur Python-Standardbibliothek, Aufruf von überall per Pfad.
 
 ## Aufwand

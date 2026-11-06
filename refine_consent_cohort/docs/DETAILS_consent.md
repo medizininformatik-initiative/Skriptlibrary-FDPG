@@ -1,6 +1,6 @@
 # validate_consent_torch.py – Details
 
-Ausführliche Beschreibung von `validate_consent_torch.py`. Für den schnellen Einstieg siehe [README.md](README.md).
+Ausführliche Beschreibung von `validate_consent_torch.py`. Für den schnellen Einstieg siehe [README.md](../README.md).
 
 ## Inhalt
 
@@ -41,7 +41,7 @@ Die Logik folgt TORCH (v1.0.3).
 ## 3. Aufruf
 
 ```bash
-python3 /pfad/zu/torch_export_checks/validate_consent_torch.py \
+python3 /pfad/zu/refine_consent_cohort/validate_consent_torch.py \
   --data jobs/<job>/import \
   --crtdl <CRTDL.json> \
   --encounter-shift on --shift-class IMP --shift-max-days <wie TORCH> \
