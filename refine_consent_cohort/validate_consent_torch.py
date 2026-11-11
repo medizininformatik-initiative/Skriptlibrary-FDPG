@@ -61,7 +61,9 @@ Output (--out-dir)
   consent_resources.csv   one row per checked resource with status and note
   consent_patients.csv    one row per patient: windows with/without shift, retro, gate
   consent_summary.md      counts per status plus reading guide
-Exit code 0 = no violations, 2 = violations/unexpected resources found.
+  consent_validation.log  run log: parameters, input files, progress, duration, peak memory,
+                          traceback on error. Contains no patient IDs -> can be shared.
+Exit code 0 = no violations, 2 = violations/unexpected resources found, 1 = aborted with error.
 Python standard library only (.zst needs the `zstandard` module or the `zstd` binary).
 """
 
@@ -69,13 +71,18 @@ import argparse
 import csv
 import io
 import json
+import logging
 import os
+import platform
 import re
 import shutil
 import subprocess
 import sys
+import time
 from collections import Counter, defaultdict
 from datetime import date, timedelta
+
+VERSION = "4.1"
 
 CONSENT_SYSTEM = "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"
 OID = "2.16.840.1.113883.3.1937.777.24.5.3."
@@ -126,6 +133,47 @@ BAD_PREFIXES = ("VIOLATION", "UNEXPECTED")
 DAY_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
 
 
+# --------------------------------------------------------------------------- logging
+# One logger for the whole script. Until setup_logging() runs, warnings still reach the console
+# (Python's fallback handler). Rule: never log patient IDs, only counts and file names.
+log = logging.getLogger("validate_consent_torch")
+LOG_FILE = "consent_validation.log"
+PROGRESS_RESOURCES = 50000   # log a progress line every N resources while loading
+PROGRESS_PATIENTS = 500      # log a progress line every N patients while checking
+
+
+def setup_logging(out_dir):
+    """Log to <out_dir>/consent_validation.log (overwritten per run) and to the console (stderr)."""
+    log.setLevel(logging.INFO)
+    fmt_ = logging.Formatter("%(asctime)s %(levelname)-7s %(message)s", "%Y-%m-%d %H:%M:%S")
+    # file handler flushes after every line -> the log survives even if the process is killed (OOM)
+    fh = logging.FileHandler(os.path.join(out_dir, LOG_FILE), mode="w", encoding="utf-8")
+    fh.setFormatter(fmt_)
+    ch = logging.StreamHandler(sys.stderr)
+    ch.setFormatter(fmt_)
+    log.addHandler(fh)
+    log.addHandler(ch)
+
+
+def peak_memory():
+    """Peak memory (RSS) of this process as text, e.g. '1.8 GB'. Not available on Windows."""
+    try:
+        import resource
+    except ImportError:
+        return "n/a"
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # Linux reports kilobytes, macOS bytes
+    peak_bytes = peak if sys.platform == "darwin" else peak * 1024
+    return f"{peak_bytes / 1024 ** 3:.2f} GB"
+
+
+def file_size(path):
+    try:
+        return f"{os.path.getsize(path) / 1024 ** 2:.1f} MB"
+    except OSError:
+        return "?"
+
+
 # --------------------------------------------------------------------------- read NDJSON
 def _open_text(path):
     if path.endswith(".zst"):
@@ -134,7 +182,8 @@ def _open_text(path):
             return io.TextIOWrapper(zstandard.ZstdDecompressor().stream_reader(open(path, "rb")), encoding="utf-8")
         except ImportError:
             if not shutil.which("zstd"):
-                sys.exit(f"[ERROR] {path}: .zst file, but neither Python module 'zstandard' nor 'zstd' available")
+                log.error(f"{path}: .zst file, but neither Python module 'zstandard' nor 'zstd' available")
+                sys.exit(1)
             proc = subprocess.Popen(["zstd", "-dc", path], stdout=subprocess.PIPE)
             return io.TextIOWrapper(proc.stdout, encoding="utf-8")
     return open(path, encoding="utf-8")
@@ -151,13 +200,13 @@ def expand_paths(paths, suffixes=(".ndjson", ".ndjson.zst", ".json"), skip_audit
                     continue
                 # TORCH audit files (<batchId>_consent.ndjson) are not exported data -> belong to --consent-audit
                 if skip_audit and name.endswith(("_consent.ndjson", "_consent.ndjson.zst")):
-                    print(f"[WARN] skipping audit file in --data: {name} (use --consent-audit)", file=sys.stderr)
+                    log.warning(f"skipping audit file in --data: {name} (use --consent-audit)")
                     continue
                 out.append(full)
         elif os.path.isfile(p):
             out.append(p)
         else:
-            print(f"[WARN] path not found: {p}", file=sys.stderr)
+            log.warning(f"path not found: {p}")
     return out
 
 
@@ -171,7 +220,7 @@ def iter_lines(path):
             try:
                 yield lineno, json.loads(line)
             except json.JSONDecodeError as exc:
-                print(f"[WARN] {path}:{lineno}: JSON error: {exc}", file=sys.stderr)
+                log.warning(f"{path}:{lineno}: JSON error: {exc}")
 
 
 def resources_of(obj):
@@ -419,19 +468,38 @@ def sys_key(system):
 def load_data(paths):
     """Patient ID -> list of resources; plus core resources (no patient reference)."""
     by_patient, core = defaultdict(list), []
-    for path in expand_paths(paths, skip_audit=True):
+    files = expand_paths(paths, skip_audit=True)
+    log.info(f"--data: {len(files)} file(s)")
+    for path in files:
+        log.info(f"  {os.path.basename(path)} ({file_size(path)})")
+    n_res = 0
+    for path in files:
+        n_file = 0
         for _, obj in iter_lines(path):
             res = resources_of(obj)
             bundle_pat = next((r.get("id") for r in res if r.get("resourceType") == "Patient"), None)
             for r in res:
                 pid = patient_ref(r) or bundle_pat
                 (by_patient[pid] if pid else core).append((r, os.path.basename(path)))
+                n_res += 1
+                n_file += 1
+                # progress: shows how far loading got if the process is killed (e.g. out of memory)
+                if n_res % PROGRESS_RESOURCES == 0:
+                    log.info(f"  loading: {n_res} resources, {len(by_patient)} patients, peak memory {peak_memory()}")
+        log.info(f"  read {os.path.basename(path)}: {n_file} resources")
+    if not files:
+        log.warning("no NDJSON files found in --data")
+    log.info(f"loaded {n_res} resources: {len(by_patient)} patients, {len(core)} core resources, "
+             f"peak memory {peak_memory()}")
     return by_patient, core
 
 
 def load_audit(paths):
     consents, encounters = defaultdict(list), defaultdict(list)
-    for path in expand_paths(paths):
+    files = expand_paths(paths)
+    log.info(f"--consent-audit: {len(files)} file(s)")
+    for path in files:
+        log.info(f"  {os.path.basename(path)} ({file_size(path)})")
         for _, obj in iter_lines(path):
             for r in resources_of(obj):
                 pid = patient_ref(r)
@@ -439,6 +507,8 @@ def load_audit(paths):
                     consents[pid].append(r)
                 elif r.get("resourceType") == "Encounter":
                     encounters[pid].append(r)
+    log.info(f"loaded audit: {sum(len(v) for v in consents.values())} consents, "
+             f"{sum(len(v) for v in encounters.values())} encounters, peak memory {peak_memory()}")
     return consents, encounters
 
 
@@ -461,7 +531,15 @@ def main():
     ap.add_argument("--inclusion-check", action="store_true",
                     help="also check the CRTDL inclusion criteria against the exported resources "
                          "(writes consent_inclusion.csv; needs --crtdl and filter_by_crtdl.py next to this script)")
+    ap.add_argument("--version", action="version", version=f"validate_consent_torch {VERSION}")
     args = ap.parse_args()
+
+    # out-dir first, so the log file can be written from the start
+    os.makedirs(args.out_dir, exist_ok=True)
+    setup_logging(args.out_dir)
+    t_start = time.time()
+    log.info(f"validate_consent_torch {VERSION}, Python {platform.python_version()}, {platform.system()}")
+    log.info("parameters: " + ", ".join(f"--{k.replace('_', '-')}={v}" for k, v in vars(args).items()))
 
     today = date.fromisoformat(args.today) if args.today else date.today()
     t2c = DEFAULT_TYPE_TO_CONSENT
@@ -479,7 +557,7 @@ def main():
         requested = {OID + c.strip().lstrip(".") for c in args.codes.split(",")}
     else:
         requested = {C8, C6}
-        print("[WARN] neither --crtdl nor --codes: assuming .8 + .6 without retro.", file=sys.stderr)
+        log.warning("neither --crtdl nor --codes: assuming .8 + .6 without retro.")
     enforce = bool(requested)
     codes = requested & {C8, C6}
     retro_codes = requested & {C45, C46}
@@ -491,22 +569,29 @@ def main():
         header_notes.append("CRTDL contains only one of .8/.6 -> TORCH rejects such a request (ConsentFormatException). Check!")
     if ignored:
         header_notes.append("Consent codes in the CRTDL ignored by TORCH: " + ", ".join(sorted(ignored)))
+    log.info(f"consent codes: {', '.join(SHORT.get(c, c) for c in sorted(requested)) or '-'}, gate date {today}")
 
     # ---- inclusion check: same criteria parsing and code search as filter_by_crtdl.py
     incl_groups, incl_skipped = [], []
     if args.inclusion_check:
         if not crtdl_obj:
-            sys.exit("[ERROR] --inclusion-check needs --crtdl")
+            log.error("--inclusion-check needs --crtdl")
+            sys.exit(1)
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         try:
             from filter_by_crtdl import parse_inclusion_groups, rule_matches
         except ImportError:
-            sys.exit("[ERROR] --inclusion-check needs filter_by_crtdl.py in the same folder as this script")
+            log.error("--inclusion-check needs filter_by_crtdl.py in the same folder as this script")
+            sys.exit(1)
         incl_groups, incl_skipped, _ = parse_inclusion_groups(crtdl_obj)
+        log.info(f"inclusion check: {len(incl_groups)} group(s), "
+                 f"{sum(len(g) for g in incl_groups)} criteria, {len(incl_skipped)} skipped")
         if not incl_groups:
             header_notes.append("Inclusion check: no checkable inclusion criteria in the CRTDL.")
 
+    t_phase = time.time()
     by_patient, core = load_data(args.data)
+    log.info(f"loading data took {time.time() - t_phase:.0f} s")
     # Medication (no patient reference, core resources): id -> codes, for medicationReference
     core_med_codes = {r.get("id"): [(c.get("system", ""), c.get("code", "")) for c in (r.get("code") or {}).get("coding", [])]
                       for r, _ in core if r.get("resourceType") == "Medication"}
@@ -530,14 +615,21 @@ def main():
                                 "Fetch the audit files <batchId>_consent.ndjson from TORCH (Task.output) and pass them with --consent-audit.")
     if source == "audit" and by_patient and not (set(by_patient) & set(consents_raw)):
         header_notes.append("NO patient ID from the output occurs in the audit - is the script running on DIMP output (hashed IDs)? Run it on jobs/<job>/import.")
+    # notes contain no patient IDs -> also into the log
+    for n in header_notes:
+        log.warning(n)
 
     shift_mode = args.encounter_shift
-    os.makedirs(args.out_dir, exist_ok=True)
     res_rows, pat_rows = [], []
     status_count = Counter()
     type_status = defaultdict(Counter)
 
-    for pid in sorted(by_patient, key=str):
+    t_phase = time.time()
+    n_patients = len(by_patient)
+    log.info(f"checking {n_patients} patients (consent source: {source}, encounter shift: {shift_mode})")
+    for i_pat, pid in enumerate(sorted(by_patient, key=str), 1):
+        if i_pat % PROGRESS_PATIENTS == 0:
+            log.info(f"  checked {i_pat}/{n_patients} patients, peak memory {peak_memory()}")
         items = by_patient[pid]
         parsed, skipped = [], []
         for r in consents_raw.get(pid, []):
@@ -673,6 +765,7 @@ def main():
                     "window_end": str(max(e_ for _, e_ in w_eff)) if w_eff else "",
                     "retro_applied": pat_rows[-1]["retro_applied"], "shift_applied": pat_rows[-1]["shift_applied"],
                 })
+    log.info(f"checking patients took {time.time() - t_phase:.0f} s, peak memory {peak_memory()}")
 
     for r, fname in core:
         st = "CORE_NOT_FILTERED" if r.get("resourceType") not in TORCH_GENERATED else "TORCH_GENERATED"
@@ -767,17 +860,17 @@ def main():
         lines += ["", "## Inclusion check", "",
                   f"Checked inclusion groups (AND): {crit_txt}",
                   ] + [f"- not checked ({reason}): {text}" for reason, text in incl_skipped] + [
-                  "",
-                  f"**{len(incl_rows)} of {len(pat_rows)} patients** do not fulfil all inclusion groups with the exported "
-                  "resources. filter_by_crtdl.py should exclude about the same number.",
-                  "",
-                  "| Patients | Count |", "|---|---:|",
-                  f"| with retro extension | {sum(1 for r in incl_rows if r['retro_applied'] == 'YES')} |",
-                  f"| with encounter shift | {sum(1 for r in incl_rows if r['shift_applied'] == 'YES')} |",
-                  f"| without valid consent window | {sum(1 for r in incl_rows if not r['window_start'])} |",
-                  "",
-                  "Details per patient (FHIR ID, unmet groups, consent window): consent_inclusion.csv.",
-                  ]
+                     "",
+                     f"**{len(incl_rows)} of {len(pat_rows)} patients** do not fulfil all inclusion groups with the exported "
+                     "resources. filter_by_crtdl.py should exclude about the same number.",
+                     "",
+                     "| Patients | Count |", "|---|---:|",
+                     f"| with retro extension | {sum(1 for r in incl_rows if r['retro_applied'] == 'YES')} |",
+                     f"| with encounter shift | {sum(1 for r in incl_rows if r['shift_applied'] == 'YES')} |",
+                     f"| without valid consent window | {sum(1 for r in incl_rows if not r['window_start'])} |",
+                     "",
+                     "Details per patient (FHIR ID, unmet groups, consent window): consent_inclusion.csv.",
+                 ]
     lines += ["", "## Reading guide", "",
               "- `window_no_shift` vs. `window_with_shift` in consent_patients.csv shows the effect of the encounter shift.",
               "- `--encounter-shift unknown` calculates both variants; resources with `OK_ONLY_WITH_SHIFT` show that TORCH ran with shift (or that something is wrong).",
@@ -789,9 +882,29 @@ def main():
     with open(os.path.join(args.out_dir, "consent_summary.md"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
     print("\n".join(lines))
-    print(f"\nReports written to {args.out_dir}/", file=sys.stderr)
+
+    # ---- end of run: counts only, no patient IDs
+    log.info(f"result: {len(by_patient)} patients, {len(res_rows)} resources, {bad} flagged, {unclear} not conclusively checkable")
+    for st, n in sorted(status_count.items()):
+        log.info(f"  {st}: {n}")
+    if incl_groups:
+        log.info(f"inclusion check: {len(incl_rows)} of {len(pat_rows)} patients do not fulfil all inclusion groups")
+    log.info(f"reports written to {args.out_dir}/")
+    log.info(f"finished in {time.time() - t_start:.0f} s, peak memory {peak_memory()}, exit code {2 if bad else 0}")
     sys.exit(2 if bad else 0)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException as exc:
+        # full traceback into the log before aborting (MemoryError, KeyboardInterrupt, unexpected errors).
+        # A process killed by the system (OOM killer, "Killed") cannot log anything - the last progress
+        # line in the log then shows how far it got.
+        if log.handlers:
+            log.exception(f"aborted: {type(exc).__name__}: {exc} (peak memory {peak_memory()})")
+        else:
+            raise
+        sys.exit(1)

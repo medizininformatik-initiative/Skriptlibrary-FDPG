@@ -169,6 +169,14 @@ Ergebnis in `jobs/<job>/consent_report/`:
 - `consent_inclusion.csv`: die ausgeschlossenen Patienten mit `Patient.id` vor DIMP und ihrem
   Consent-Fenster. Damit lassen sich die einschließenden Diagnosen in den Quelldaten (ohne
   Consent-Filter) nachsehen. Erwartet: Sie liegen vor `window_start`.
+- `consent_validation.log`: Protokoll des Laufs mit Parametern, Eingabedateien, Fortschritt, Laufzeit
+  und Speicherverbrauch. Bei einem Abbruch steht hier der Fehler. Enthält keine Patienten-IDs und kann
+  bei Problemen weitergegeben werden.
+
+**Bei Abbruch:** `consent_validation.log` ansehen. Steht am Ende kein Fehler, sondern bricht das Log
+einfach ab (auf der Konsole meist nur `Killed`), hat das System den Prozess beendet, meist wegen zu wenig
+Arbeitsspeicher. Die letzte Fortschrittszeile zeigt, wie weit das Skript kam und wie viel Speicher es
+bis dahin belegt hatte.
 
 Weitere Ausgaben und das Vorgehen: [DETAILS_consent.md](docs/DETAILS_consent.md).
 

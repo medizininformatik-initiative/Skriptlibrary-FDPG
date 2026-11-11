@@ -52,7 +52,7 @@ python3 /pfad/zu/refine_consent_cohort/validate_consent_torch.py \
 Mit Audit-Dateien zusätzlich `--consent-audit <ordner>`. Mit `--inclusion-check` zusätzlich die Prüfung der
 Einschlusskriterien ([Abschnitt 11](#11-prüfung-der-einschlusskriterien---inclusion-check)).
 
-Exit-Code: `0` = keine Verstöße, `2` = Verstöße oder unerwartete Ressourcen gefunden.
+Exit-Code: `0` = keine Verstöße, `2` = Verstöße oder unerwartete Ressourcen gefunden, `1` = Abbruch mit Fehler.
 
 ---
 
@@ -182,6 +182,17 @@ einen Patienten nachvollziehen, welcher Zeitraum exportiert werden durfte.
 **`consent_inclusion.csv`** – nur mit `--inclusion-check`: die Patienten, die die Einschlusskriterien im
 Export nicht erfüllen, mit `Patient.id` vor DIMP und Fenster. Spalten und Nutzung in
 [Abschnitt 11](#11-prüfung-der-einschlusskriterien---inclusion-check).
+
+**`consent_validation.log`** – Protokoll des Laufs, wird bei jedem Lauf neu geschrieben:
+
+- Start: Skript-Version, Python-Version, alle Parameter, Eingabedateien mit Größe
+- Fortschritt: alle 50.000 Ressourcen beim Laden, alle 500 Patienten bei der Prüfung, jeweils mit Speicherverbrauch
+- Ende: Anzahl pro Status, Laufzeit, höchster Speicherverbrauch (unter Windows nicht verfügbar)
+- bei einem Fehler der vollständige Traceback
+
+Enthält nur Zahlen und Dateinamen, keine Patienten-IDs. Wird der Prozess vom System beendet (`Killed`,
+meist zu wenig Arbeitsspeicher), kann das Skript nichts mehr schreiben. Die letzte Fortschrittszeile zeigt
+dann, wie weit es kam.
 
 ---
 
