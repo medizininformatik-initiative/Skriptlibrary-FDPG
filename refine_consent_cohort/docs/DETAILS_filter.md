@@ -169,6 +169,14 @@ automatisch. Beispiel VERT-CARE:
 
 Nur wenn Namen abweichen: `--patient-column`, `--reference-tables`, `--medication-core`.
 
+**Medikations-Kerntabelle:** ATC-Codes in `MII PR Medikation Medication` werden über `medicationReference`
+den Patienten zugeordnet. Heißt die Tabelle anders, kommt die Warnung `Medikations-Kerntabelle … nicht gefunden`
+mit der Liste der gelesenen Tabellen. Die Codes werden dann zwar in der Code-Suche gefunden, aber keinem
+Patienten zugeordnet („Patienten pro Kriterium“ = `0`), diese Patienten werden zu Unrecht ausgeschlossen.
+Abhilfe: `--medication-core "<Name der Medication-Tabelle>"`. Stehen die ATC-Codes direkt in
+MedicationAdministration/MedicationRequest oder gibt es keine Medication-Ressource, wird die Kerntabelle nicht
+gebraucht und die Warnung ist harmlos.
+
 ---
 
 ## 10. Ausgabedateien
@@ -237,7 +245,8 @@ Hier sieht man, ob die hierarchische Suche das Richtige findet: Jeder `daten_cod
 
 - **Berücksichtigte Einschlusskriterien:** Gruppen und Kriterien mit Suchregel (`icd`, `ops`, `range`,
   `prefix`, `exact`). Darunter, was übersprungen wurde und warum.
-- **Tabellen:** erkanntes Trennzeichen, Patienten pro Tabelle, Rolle.
+- **Tabellen:** erkanntes Trennzeichen, Patienten pro Tabelle, Rolle. Bei ATC-Kriterien ggf. die Warnung zur
+  Medikations-Kerntabelle (siehe [9](#9-rollen-der-tabellen)).
 - **Code-Suche:** pro Code die Fundstellen und die gefundenen Codes. `NICHT GEFUNDEN` heißt meist, dass
   der Code bei allen Patienten nur vor der Einwilligung dokumentiert ist. Beispiele und Ausnahmen
   (SNOMED, LOINC) im [README](../README.md#2-konsolenausgabe-prüfen).
