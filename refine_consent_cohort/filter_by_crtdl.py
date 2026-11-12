@@ -326,7 +326,11 @@ def main():
         role = "Medikations-Kerntabelle" if t["is_core"] else ("Referenztabelle, nicht durchsucht" if t["is_ref"] else "")
         print(f"  {name}: Trennzeichen '{t['delim']}', Patienten: {t['patients']}" + (f" ({role})" if role else ""))
     if not any(t["is_core"] for t in tables.values()) and any("atc" in s.lower() for c in criteria for s in c["systems"]):
-        print(f"WARNUNG: Medikations-Kerntabelle '{args.medication_core}' nicht gefunden.")
+        # without the core table, ATC hits in Medication cannot be linked to patients via medicationReference
+        print(f"WARNUNG: Medikations-Kerntabelle '{args.medication_core}' nicht gefunden "
+              f"(Leerzeichen/Unterstriche egal). ATC-Kriterien über medicationReference werden dann nicht "
+              f"zugeordnet, betroffene Patienten ggf. zu Unrecht ausgeschlossen. "
+              f"Tabelle mit --medication-core angeben. Gelesene Tabellen: {', '.join(sorted(tables))}")
 
     # ======================================================================= 3) report code search
     print("\nCode-Suche:")
