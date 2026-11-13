@@ -184,4 +184,6 @@ Weitere Ausgaben und das Vorgehen: [DETAILS_consent.md](docs/DETAILS_consent.md)
 
 - `docs/`: ausführliche Beschreibung beider Skripte, `docs/pilotierung/`: Bericht zur Pilotierung
 - `development/`: Tests und künstliche Testdaten, nur nach Änderungen an den Skripten nötig
-  ([Tests](docs/DETAILS_filter.md#14-tests))
+  ([Tests](docs/DETAILS_filter.md#14-tests)). Dazu `filter_by_crtdl_dev.py`, eine ressourcenschonendere
+  Version des Filters mit gleichen Ergebnissen, noch im Test. Bei Speicherproblemen mit großen Exporten
+  kann sie statt `filter_by_crtdl.py` genutzt werden.
