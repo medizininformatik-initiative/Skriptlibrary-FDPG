@@ -250,9 +250,9 @@ vor DIMP und liefert die `Patient.id` der betroffenen Patienten mit ihrem Consen
 1. Die Einschlusskriterien werden mit `filter_by_crtdl.py` aus der CRTDL gelesen (gleiche Funktion,
    gleiche Regeln: hierarchische Code-Suche, Consent-, Alters- und Geschlechtskriterien übersprungen).
    `filter_by_crtdl.py` muss deshalb im selben Ordner liegen.
-2. Pro Patient werden alle Codes der exportierten Ressourcen gesammelt: `code.coding`,
-   `medicationCodeableConcept.coding` und die Codes der über `medicationReference` verknüpften
-   Medication.
+2. Pro Patient werden alle Codes der exportierten Ressourcen gesammelt: `code.coding`, 
+   `medicationCodeableConcept.coding`, die Codes der über `medicationReference` verknüpften
+   Medication und die Encounter-Klasse `Encounter.class` (z.B. `IMP` für Kriterien wie „stationärer Fall“).
 3. Ein Code zählt für ein Kriterium, wenn er passt **und** das Codesystem stimmt (ICD `C07` ist nicht
    ATC `C07`). Verglichen wird nur der letzte Teil der System-URL, `.../dimdi/icd-10-gm` und
    `.../bfarm/icd-10-gm` gelten als gleich.

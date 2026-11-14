@@ -745,6 +745,10 @@ def main():
                     continue
                 for key in ("code", "medicationCodeableConcept"):
                     pcodes.update((c.get("system", ""), c.get("code", "")) for c in (r.get(key) or {}).get("coding", []))
+                # Encounter.class is a single Coding (not a CodeableConcept), e.g. IMP for an inpatient stay
+                cls = r.get("class") if r.get("resourceType") == "Encounter" else None
+                if isinstance(cls, dict) and cls.get("code"):
+                    pcodes.add((cls.get("system", ""), cls["code"]))
                 mref = (r.get("medicationReference") or {}).get("reference", "")
                 if mref:
                     pcodes.update(core_med_codes.get(mref.split("/")[-1], []))
@@ -860,17 +864,17 @@ def main():
         lines += ["", "## Inclusion check", "",
                   f"Checked inclusion groups (AND): {crit_txt}",
                   ] + [f"- not checked ({reason}): {text}" for reason, text in incl_skipped] + [
-                     "",
-                     f"**{len(incl_rows)} of {len(pat_rows)} patients** do not fulfil all inclusion groups with the exported "
-                     "resources. filter_by_crtdl.py should exclude about the same number.",
-                     "",
-                     "| Patients | Count |", "|---|---:|",
-                     f"| with retro extension | {sum(1 for r in incl_rows if r['retro_applied'] == 'YES')} |",
-                     f"| with encounter shift | {sum(1 for r in incl_rows if r['shift_applied'] == 'YES')} |",
-                     f"| without valid consent window | {sum(1 for r in incl_rows if not r['window_start'])} |",
-                     "",
-                     "Details per patient (FHIR ID, unmet groups, consent window): consent_inclusion.csv.",
-                 ]
+                  "",
+                  f"**{len(incl_rows)} of {len(pat_rows)} patients** do not fulfil all inclusion groups with the exported "
+                  "resources. filter_by_crtdl.py should exclude about the same number.",
+                  "",
+                  "| Patients | Count |", "|---|---:|",
+                  f"| with retro extension | {sum(1 for r in incl_rows if r['retro_applied'] == 'YES')} |",
+                  f"| with encounter shift | {sum(1 for r in incl_rows if r['shift_applied'] == 'YES')} |",
+                  f"| without valid consent window | {sum(1 for r in incl_rows if not r['window_start'])} |",
+                  "",
+                  "Details per patient (FHIR ID, unmet groups, consent window): consent_inclusion.csv.",
+                  ]
     lines += ["", "## Reading guide", "",
               "- `window_no_shift` vs. `window_with_shift` in consent_patients.csv shows the effect of the encounter shift.",
               "- `--encounter-shift unknown` calculates both variants; resources with `OK_ONLY_WITH_SHIFT` show that TORCH ran with shift (or that something is wrong).",
