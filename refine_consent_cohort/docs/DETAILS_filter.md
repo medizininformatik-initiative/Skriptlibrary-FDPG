@@ -239,6 +239,10 @@ Hier sieht man, ob die hierarchische Suche das Richtige findet: Jeder `daten_cod
 - die Konsole zeigt pro Tabelle `behalten` und `entfernt`
 - mit `--no-include` werden sie nicht geschrieben
 
+**`filter_by_crtdl.log`** – die komplette Konsolenausgabe (siehe [11](#11-konsolenausgabe)), dazu oben Startzeit,
+Python-Version und Aufruf, unten die Laufzeit. Fehlermeldungen stehen ebenfalls darin. Wird bei jedem Lauf neu
+geschrieben. Enthält keine Patienten-IDs.
+
 ---
 
 ## 11. Konsolenausgabe

@@ -15,11 +15,13 @@ import argparse
 import csv
 import json
 import os
+import platform
 import re
 import sys
+import time
 from collections import Counter, defaultdict
 
-VERSION = "2.0"
+VERSION = "2.1"
 
 # Criteria that cannot be checked by code search in the CSVs (consent, demography)
 CONSENT_CONTEXTS = {"einwilligung", "consent"}
@@ -174,6 +176,22 @@ def safe_label(text, maxlen=60):
     return re.sub(r"[^A-Za-z0-9ÄÖÜäöüß_-]+", "_", text).strip("_")[:maxlen]
 
 
+class Tee:
+    """Write everything that goes to the console also into the log file (filter_by_crtdl.log)."""
+
+    def __init__(self, console, logfile):
+        self.console, self.logfile = console, logfile
+
+    def write(self, text):
+        self.console.write(text)
+        self.logfile.write(text)
+
+    def flush(self):
+        # flushed after every write -> the log survives even if the process is killed
+        self.console.flush()
+        self.logfile.flush()
+
+
 # --------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser(
@@ -203,6 +221,15 @@ def main():
         re.compile(id_re)
     except re.error as e:
         sys.exit(f"Ungültiger --patient-id-regex: {e}")
+
+    # ---- log file: everything printed to the console also goes to <out-dir>/filter_by_crtdl.log
+    os.makedirs(args.out_dir, exist_ok=True)
+    logfile = open(os.path.join(args.out_dir, "filter_by_crtdl.log"), "w", encoding="utf-8", buffering=1)
+    sys.stdout = Tee(sys.__stdout__, logfile)
+    sys.stderr = Tee(sys.__stderr__, logfile)      # also warnings, error messages and tracebacks
+    t_start = time.time()
+    print(f"Start: {time.strftime('%Y-%m-%d %H:%M:%S')}, Python {platform.python_version()}")
+    print("Aufruf: " + " ".join(sys.argv))
 
     # ======================================================================= 1) CRTDL
     with open(args.crtdl, encoding="utf-8") as fh:
@@ -358,7 +385,6 @@ def main():
         if unmet:
             excluded[p] = unmet
 
-    os.makedirs(args.out_dir, exist_ok=True)
     with open(os.path.join(args.out_dir, "inclusion_criteria_matches.csv"), "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, delimiter=";")
         w.writerow(["patientId"] + [f"K{c['idx']}_{safe_label(c['label'])}" for c in criteria])
@@ -377,11 +403,13 @@ def main():
 
     share = (len(excluded) / len(patients) * 100) if patients else 0
     print(f"\nAusgeschlossen: {len(excluded)} von {len(patients)} Patienten ({share:.1f} %)")
-    print(f"Berichte in {args.out_dir}: inclusion_criteria_matches.csv, to_be_excluded.csv, code_matches.csv")
+    print(f"Berichte in {args.out_dir}: inclusion_criteria_matches.csv, to_be_excluded.csv, code_matches.csv, "
+          f"filter_by_crtdl.log")
 
     # ======================================================================= 5) pass 2: *_include.csv
     if args.no_include:
         print("--no-include: keine *_include.csv geschrieben.")
+        print(f"Laufzeit: {time.time() - t_start:.0f} s")
         return
     print("\nGefilterte Tabellen:")
     for name, t in sorted(tables.items()):
@@ -402,6 +430,7 @@ def main():
                 w.writerow(row)
                 kept += 1
         print(f"  {name}_include.csv: {kept} behalten, {dropped} entfernt")
+    print(f"\nLaufzeit: {time.time() - t_start:.0f} s")
 
 
 if __name__ == "__main__":

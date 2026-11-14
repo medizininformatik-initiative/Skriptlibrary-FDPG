@@ -116,6 +116,7 @@ Ausgeliefert werden die `*_include.csv` aus `jobs/<job>/filter_by_crtdl/`.
 | `to_be_excluded.csv` | ausgeschlossene Patienten (`Patient.id` nach DIMP) und die Nummern der nicht erfüllten Gruppen | Anzahl und Gruppen prüfen |
 | `inclusion_criteria_matches.csv` | eine Zeile pro Patient, pro Kriterium `1` (erfüllt) oder `0` | nachsehen, welches Kriterium ein Patient erfüllt |
 | `code_matches.csv` | welche Codes in den Daten auf welches Kriterium gepasst haben, mit Tabelle, Spalte und Anzahl | prüfen, ob die Code-Suche das Richtige findet |
+| `filter_by_crtdl.log` | Konsolenausgabe des Laufs mit Aufruf, Startzeit und Laufzeit | nachlesen, ohne die Shell-Ausgabe zu brauchen |
 
 Spalten und Beispiele: [DETAILS_filter.md](docs/DETAILS_filter.md#10-ausgabedateien).
 
