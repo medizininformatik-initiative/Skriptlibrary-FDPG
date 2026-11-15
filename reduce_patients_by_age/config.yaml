@@ -1,7 +1,14 @@
-# Configuration for reduce_patients_by_age.py
-# No third-party YAML package is required; this script supports simple key/value and list syntax.
+# Configuration for reduce_patients_by_age.py (optional, pass with --config config.yaml)
+# No third-party YAML package is required; the script supports simple key/value and list syntax.
+# The values below are the built-in defaults. Single parameters (e.g. --age-threshold) override this file.
 
 patient_column: "patient"
+
+alternate_patient_columns:
+  - "subject"
+  - "Patient"
+  - "patient_reference"
+  - "Patient_reference"
 
 person_id_column: "id"
 
@@ -20,10 +27,3 @@ diagnosis_date_columns:
 age_threshold: 19
 
 mode: "remove_if_younger"
-
-alternate_patient_columns:
-  - "subject"
-  - "Patient"
-  - "patient_reference"
-  - "Patient_reference"
-
