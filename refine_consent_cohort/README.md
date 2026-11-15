@@ -33,10 +33,10 @@ python3 /pfad/zu/refine_consent_cohort/filter_by_crtdl.py \
   --out-dir jobs/<job>/filter_by_crtdl
 ```
 
-Beispiel, aufgerufen im Projektordner der DUP:
+Beispiel, aufgerufen im Projektordner der DUP (`Skriptlibrary-FDPG` liegt auf Ebene der DUPs):
 
 ```bash
-python3 ~/Skriptlibrary-FDPG/refine_consent_cohort/filter_by_crtdl.py \
+python3 ../Skriptlibrary-FDPG/refine_consent_cohort/filter_by_crtdl.py \
   --crtdl PROJEKT_v01.json \
   --csv-dir jobs/20261021_1242_1a2b3c4d/csv \
   --out-dir jobs/20261021_1242_1a2b3c4d/filter_by_crtdl
@@ -143,10 +143,10 @@ python3 /pfad/zu/refine_consent_cohort/validate_consent_torch.py \
   --inclusion-check
 ```
 
-Beispiel, aufgerufen im Projektordner der DUP:
+Beispiel, aufgerufen im Projektordner der DUP (`Skriptlibrary-FDPG` liegt auf Ebene der DUPs):
 
 ```bash
-python3 ~/Skriptlibrary-FDPG/refine_consent_cohort/validate_consent_torch.py \
+python3 ../Skriptlibrary-FDPG/refine_consent_cohort/validate_consent_torch.py \
   --data jobs/20261021_1242_1a2b3c4d/import \
   --crtdl PROJEKT_v01.json \
   --encounter-shift on --shift-max-days 7 \
