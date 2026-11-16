@@ -1,0 +1,1 @@
+{"resourceType": "Bundle", "type": "collection", "entry": [{"resource": {"resourceType": "Medication", "id": "med-1", "code": {"coding": [{"system": "http://fhir.de/CodeSystem/bfarm/atc", "code": "C07AB02"}]}}}]}

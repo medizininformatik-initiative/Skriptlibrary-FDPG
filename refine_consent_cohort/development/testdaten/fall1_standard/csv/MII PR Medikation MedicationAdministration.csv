@@ -1,0 +1,7 @@
+id,patient,MedicationAdministration_medication_X_Medicationreference_reference
+a1,Patient/p1,Medication/m1
+a2,Patient/p2,Medication/m1
+a3,Patient/p3,Medication/m2
+a4,Patient/p4,Medication/m1
+a5,Patient/p5,Medication/m1
+a6,Patient/p6,Medication/m1

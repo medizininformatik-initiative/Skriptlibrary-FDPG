@@ -1,119 +1,190 @@
-# CRTDL-Filter
+# Prüfskripte für TORCH-Exporte
 
-Ein Python-Skript, das die Einschlusskriterien einer CRTDL-JSON auf einen Ordner
-mit CSV-Tabellen anwendet. Es ermittelt pro Patient, welche Kriterien erfüllt sind,
-schließt Patienten nach UND/ODER-Logik aus und erzeugt bereinigte Tabellen.
+TORCH wählt die Kohorte über alle Daten eines Patienten aus, exportiert aber nur Daten aus dem
+Einwilligungszeitraum. Liegt die einschließende Diagnose außerhalb, ist der Patient in der Ausleitung,
+die Diagnose aber nicht. Diese Patienten filtert `filter_by_crtdl.py` heraus.
 
-## Voraussetzungen
+| Skript | Zweck | läuft auf | Details |
+|---|---|---|---|
+| `filter_by_crtdl.py` | entfernt Patienten ohne erfüllte Einschlusskriterien aus den CSVs | `csv/` (nach DIMP) | [DETAILS_filter.md](docs/DETAILS_filter.md) |
+| `validate_consent_torch.py` | **optional:** prüft, ob alle exportierten Daten im Consent-Fenster liegen, und zeigt die Ausschlüsse mit IDs vor DIMP | `import/` (vor DIMP) | [DETAILS_consent.md](docs/DETAILS_consent.md) |
 
-- Python 3.8 oder neuer
-- Keine externen Bibliotheken (nur Standardbibliothek: `csv`, `json`, `os`, `re`, `argparse`, `collections`)
+Python 3.8+, nur Standardbibliothek.
 
-## Aufruf
+## Inhalt
+
+- [Quickstart](#quickstart)
+  - [1. Filter ausführen](#1-filter-ausführen)
+  - [2. Konsolenausgabe prüfen](#2-konsolenausgabe-prüfen)
+  - [3. Ausliefern](#3-ausliefern)
+- [Ausgaben](#ausgaben)
+- [Wichtig](#wichtig)
+- [Optional: Ausschlüsse genauer nachprüfen](#optional-ausschlüsse-genauer-nachprüfen)
+- [Weiteres](#weiteres)
+
+## Quickstart
+
+### 1. Filter ausführen
 
 ```bash
-python crtdl_filter.py --crtdl CRTDL_json.json --csv-dir ./csv --out-dir ./output
+python3 /pfad/zu/refine_consent_cohort/filter_by_crtdl.py \
+  --crtdl <CRTDL.json> \
+  --csv-dir jobs/<job>/csv \
+  --out-dir jobs/<job>/filter_by_crtdl
 ```
 
-### Parameter
+Beispiel, aufgerufen im Projektordner der DUP (`Skriptlibrary-FDPG` liegt auf Ebene der DUPs):
 
-| Parameter | Pflicht | Standard | Beschreibung |
-|---|---|---|---|
-| `--crtdl` | ja | – | Pfad zur CRTDL-JSON |
-| `--csv-dir` | ja | – | Ordner mit den CSV-Dateien |
-| `--out-dir` | nein | `output` | Ausgabeordner (wird bei Bedarf angelegt) |
-| `--patient-column` | nein | automatisch | Name der Patienten-Spalte, falls nicht `patient`/`subject` bzw. Spalte `id` in der Patientenressource |
-| `--patient-id-regex` | nein | `^(?:[A-Za-z]+/)?([^/]+?)(?:/_history/.*)?$` | Regulärer Ausdruck, Gruppe 1 = Patienten-ID |
-| `--medication-core` | nein | `MII_PR_Medikation_Medication` | Dateiname (ohne `.csv`) der Medikations-Kerntabelle |
-| `--exclude-tables-containing` | nein | `referenz` | Tabellen, deren Dateiname diesen Text enthält, werden nicht als Kriterium geprüft |
-| `--exact-only` | nein | aus | Schaltet den Präfix-Match für ICD-10-Codes ab. Dann zählen nur exakte Code-Treffer (Verhalten der Vorgängerversion) |
-
-Hilfe anzeigen: `python crtdl_filter.py --help`
-
-## Was das Skript tut
-
-1. **CRTDL einlesen:** Die Einschlusskriterien stehen unter `cohortDefinition.inclusionCriteria`.
-   Consent- und Demografie-Kriterien (Einwilligung, Alter, Geschlecht) werden erkannt und übersprungen.
-   Das Skript gibt die berücksichtigten Kriterien aus. Zu jedem Kriterium wird außerdem das Codesystem
-   (`system`) jedes Codes gemerkt, da davon das Matching-Verhalten abhängt.
-2. **CSV-Ordner einlesen:** Alle `.csv`-Dateien werden geladen (UTF-8 mit oder ohne BOM, sonst Latin-1).
-   Bereits erzeugte `*_include.csv` werden ignoriert.
-3. **Codes suchen:** Jeder Code wird in allen Zellen gesucht (Leerzeichen am Rand werden entfernt,
-   Groß-/Kleinschreibung bleibt unverändert). Ob ein Code exakt oder als Präfix gesucht wird, hängt vom
-   Codesystem ab (siehe Abschnitt „Matching von Codes“). Das Skript gibt für jeden Code Tabelle, Spalte
-   und die tatsächlich gefundenen Werte aus. Codes ohne Treffer werden als „NICHT GEFUNDEN“ gemeldet.
-4. **Patienten zuordnen:**
-   - Tabellen mit Patientenbezug: Die Patienten-ID steht in der Spalte `patient` oder `subject`.
-     In der Patientenressource (Dateiname enthält „patient“) steht sie in der Spalte `id`.
-   - Medikation: Ein Code aus der Medikations-Kerntabelle gilt für alle Patienten, deren Medikationsreferenz
-     (Spalten mit `Medicationreference`) auf die jeweilige Medication-ID verweist.
-5. **Matrix erstellen:** Pro Patient und Kriterium wird `1` (erfüllt) oder `0` (nicht erfüllt) vermerkt.
-6. **Ausschluss bestimmen:** Eine Gruppe ist erfüllt, sobald mindestens ein Kriterium darin 1 ist. Ein Patient wird ausgeschlossen, wenn mindestens eine Gruppe nicht erfüllt ist, also wenn alle Kriterien dieser Gruppe 0 sind.
-7. **Dateien schreiben:** Die Ergebnisdateien werden im Ausgabeordner abgelegt.
-
-## Matching von Codes
-
-Die Suche unterscheidet zwei Modi:
-
-- **Präfix-Match (Standard für ICD-10-Codes):** Ein Kriterium mit dem Code `R26` findet auch die
-  Unterkategorien `R26.1`, `R26.10` und `R261` (ohne Punkt). Ein Kriterium `R26.1` findet `R26.1`
-  und dessen Unterkategorien, aber nicht `R26.2`.
-- **Exakt (alle anderen Codesysteme, z. B. SNOMED CT, LOINC, OPS):** Nur identische Werte zählen.
-  Diese Systeme sind nicht hierarchisch, ein Präfix-Match würde falsche Treffer erzeugen.
-
-Ob ein Code als ICD-10 gilt, wird am Feld `system` des `termCode` erkannt: Enthält es `icd-10` oder
-`icd10` (z. B. `http://fhir.de/CodeSystem/bfarm/icd-10-gm`), wird der Präfix-Match angewendet.
-
-Technisch entspricht der Präfix-Match für einen Code `X` dem Muster `^X(?:\.?[0-9A-Za-z]+)?$`.
-
-Beispiel für die Konsolenausgabe:
-
-```
-K1 R26: Diagnose / Condition_code_codingIcd10gm_code | gefundene Werte: R26 (1x), R26.1 (1x), R26.2 (1x)
-K2 R26.1: Diagnose / Condition_code_codingIcd10gm_code | gefundene Werte: R26.1 (1x)
+```bash
+python3 ../Skriptlibrary-FDPG/refine_consent_cohort/filter_by_crtdl.py \
+  --crtdl PROJEKT_v01.json \
+  --csv-dir jobs/20261021_1242_1a2b3c4d/csv \
+  --out-dir jobs/20261021_1242_1a2b3c4d/filter_by_crtdl
 ```
 
-## Logik der Kriterien
+Weitere Parameter sind optional, siehe [DETAILS_filter.md](docs/DETAILS_filter.md#4-parameter).
 
-- Die **äußere Liste** der `inclusionCriteria` ist eine **UND-Verknüpfung** von Gruppen.
-- Die **innere Liste** einer Gruppe ist eine **ODER-Verknüpfung** von Kriterien.
-- Mehrere `termCodes` innerhalb eines Kriteriums gelten ebenfalls als ODER.
-- Ein Patient fällt heraus, sobald in einer Gruppe **alle** Kriterien `0` sind.
+### 2. Konsolenausgabe prüfen
 
-## Ausgabedateien
+**Code-Suche:** Zu jedem Kriterium der CRTDL steht, welche Codes in den CSVs gefunden wurden.
 
-| Datei | Inhalt |
-|---|---|
-| `Inclusion_Criteria_Matches.csv` | Erste Spalte `patientId`, danach je Kriterium eine Spalte mit `1`/`0`. Trennzeichen `;`. |
-| `to-be-excluded.csv` | Eine Spalte `patientId` mit allen ausgeschlossenen Patienten. |
-| `<Originaldatei>_include.csv` | Je Eingabedatei eine Kopie ohne Zeilen ausgeschlossener Patienten. Trennzeichen `;`. |
+```text
+Code-Suche:
+  K1 R26: MII PR Diagnose Condition / Condition_code_codingIcd10gm_code: 312
+      gefundene Codes (3): R26.0, R26.1, R26.8
+  K2 H51.9: NICHT GEFUNDEN
+```
 
-Tabellen ohne Patientenbezug (z. B. `MII_PR_Medikation_Medication`) werden unverändert kopiert,
-da sich ihre Zeilen keinem Patienten zuordnen lassen.
+- `K1`: Gesucht wurde `R26`, gefunden wurden die Unterkodes `R26.0`, `R26.1` und `R26.8` in 312 Zeilen.
+  Das Kriterium wurde gefunden.
+- `K2`: `H51.9` steht in keiner Zeile der CSVs. Über dieses Kriterium kann also kein Patient
+  eingeschlossen werden.
 
-Die Konsole zeigt zusätzlich:
-- die berücksichtigten und ausgeschlossenen Kriterien,
-- die Fundstellen jedes Codes (Tabelle / Spalte), die gefundenen Werte bzw. „NICHT GEFUNDEN“,
-- die Anzahl der Patienten und Zeilen je Datei.
+`NICHT GEFUNDEN` heißt meist: Der Code ist bei allen Patienten nur vor der Einwilligung dokumentiert
+und wurde deshalb nicht exportiert. Patienten, die nur über diesen Code eingeschlossen wurden, werden
+ausgeschlossen. Das ist genau die Bereinigung, für die das Skript da ist.
 
-## Hinweise und Grenzen
+**SNOMED und LOINC in der CRTDL.** Ein Beispiel:
 
-- Der Präfix-Match ist breit: Ein Kriterium `R2` würde auch `R26`, `R27` usw. treffen. Kriterien sollten
-  deshalb möglichst genau gewählt werden (z. B. Kategorie-Ebene wie `R26`, nicht Kapitel-Ebene).
-- Ein Präfix-Match greift nur bei ICD-10-Codes. Ob das gewünscht ist, lässt sich mit `--exact-only` steuern.
-- Referenzierte Fälle und referenzierte Medikation (Dateien mit „referenz“ im Namen) werden weder als Kriterium
-  geprüft noch als Patientenquelle genutzt. Sie werden aber nach Patienten gefiltert, wenn diese ausgeschlossen sind.
-- Ein Code ohne Treffer führt dazu, dass das zugehörige Kriterium für alle Patienten `0` ist. Steht er in einer UND-Gruppe,
-  werden damit alle Patienten ausgeschlossen. Die Konsolenausgabe weist darauf hin.
-- Die Medikationsverknüpfung ist implementiert, wurde aber nur mit Testdaten geprüft, die keine Medikationscodes enthalten.
-- Die Spaltenerkennung für Patienten sucht nur nach den oben genannten Namen. Abweichende Spaltennamen
-  musst du mit `--patient-column` angeben.
-- Das Matching prüft jede Zelle gegen jeden Code per Regex. Für sehr große Tabellen kann das langsam werden.
+- Die CRTDL hat als Kriterium den SNOMED-Code `73211009` „Diabetes mellitus“, also einen Oberbegriff.
+- In den Daten eines Patienten steht `44054006` „Diabetes mellitus Typ 2“, ein Unterbegriff davon.
+- Bei der Kohortenauswahl wird der Oberbegriff über die Terminologie in alle Unterbegriffe aufgelöst.
+  Der Patient wird eingeschlossen.
+- Das Skript vergleicht bei SNOMED exakt: `73211009` ist nicht `44054006`. Es findet nichts und schließt
+  den Patienten aus, obwohl er die Diagnose im Export hat.
 
-## Testdaten
+Bei ICD, OPS und ATC passiert das nicht. Dort steckt die Hierarchie im Code selbst: `R26.8` beginnt mit
+`R26`, also erkennt das Skript `R26.8` als Unterbegriff von `R26`. Bei SNOMED und LOINC sieht man den
+Codes die Hierarchie nicht an, dafür bräuchte das Skript einen Terminologieserver. Nutzt eine CRTDL
+SNOMED- oder LOINC-Oberbegriffe (z.B. bei Bioproben oder Laborgruppen), die Ausschlüsse daher genau
+prüfen.
 
-Im Ordner `refine_consent_cohort_v2` liegen eine Test-CRTDL (`CRTDL_test.json`) und ein Diagnose-Datensatz
-(`Diagnose_mit_R26_Testfaellen.csv`) mit drei Testfällen:
-- Patient 11: R26 (erfüllt K1, nicht K2)
-- Patient 26: R26.1 (erfüllt K1 und K2)
-- Patient 27: R26.2 (erfüllt K1 als Unterkategorie von R26, nicht K2)
+**Nicht berücksichtigt:** Manche Kriterien der CRTDL kann das Skript nicht prüfen. Sie werden
+aufgelistet und übersprungen, das ist so gewollt.
+
+```text
+  Nicht berücksichtigt – Consent: MDAT wissenschaftlich nutzen EU DSGVO NIVEAU
+  Nicht berücksichtigt – nicht prüfbar (Alter/Geschlecht): Gegenwärtiges chronologisches Alter
+```
+
+- **Consent:** Die Einwilligung hat TORCH schon beim Export geprüft.
+- **Alter, Geschlecht:** Dafür sucht das Skript nicht nach Codes. Wegen dieser Kriterien wird also
+  niemand ausgeschlossen. Beispiel: Die CRTDL verlangt „Alter > 17 UND Migräne“. Das Skript prüft nur
+  die Migräne. Steht das Alter in derselben ODER-Gruppe wie eine Diagnose, z.B. „Alter > 65 ODER
+  Migräne“, wird die ganze Gruppe übersprungen. Sonst würde ein Patient, der nur über das Alter
+  eingeschlossen wurde, wegen fehlender Migräne zu Unrecht entfernt.
+
+**Anzahl der Ausgeschlossenen:** steht am Ende.
+
+```text
+Ausgeschlossen: 42 von 1500 Patienten (2.8 %)
+```
+
+Ausgeschlossen werden Patienten, deren einschließende Daten nicht im Export stehen, meist weil sie vor
+der Einwilligung liegen. Erwartet ist ein kleiner Anteil wie hier (im Pilot unter 5 %). Werden z.B. 40 %
+ausgeschlossen, stimmt meist etwas mit den Codes oder Tabellen nicht, dann die Code-Suche oben prüfen.
+
+### 3. Ausliefern
+
+Ausgeliefert werden die `*_include.csv` aus `jobs/<job>/filter_by_crtdl/`.
+
+## Ausgaben
+
+| Datei | Was steht drin | Wofür |
+|---|---|---|
+| `<Tabelle>_include.csv` | jede Eingabetabelle ohne die ausgeschlossenen Patienten, gleiche Spalten und Trennzeichen wie das Original | **wird ausgeliefert** |
+| `to_be_excluded.csv` | ausgeschlossene Patienten (`Patient.id` nach DIMP) und die Nummern der nicht erfüllten Gruppen | Anzahl und Gruppen prüfen |
+| `inclusion_criteria_matches.csv` | eine Zeile pro Patient, pro Kriterium `1` (erfüllt) oder `0` | nachsehen, welches Kriterium ein Patient erfüllt |
+| `code_matches.csv` | welche Codes in den Daten auf welches Kriterium gepasst haben, mit Tabelle, Spalte und Anzahl | prüfen, ob die Code-Suche das Richtige findet |
+| `filter_by_crtdl.log` | Konsolenausgabe des Laufs mit Aufruf, Startzeit und Laufzeit | nachlesen, ohne die Shell-Ausgabe zu brauchen |
+
+Spalten und Beispiele: [DETAILS_filter.md](docs/DETAILS_filter.md#10-ausgabedateien).
+
+## Wichtig
+
+- Der Filter prüft nicht Alter, Geschlecht, Wert- und Zeitfilter und `exclusionCriteria`. Im Zweifel
+  bleibt ein Patient drin.
+- Patienten-IDs sind die FHIR-Ressourcen-ID `Patient.id`, **nicht** ein Identifier aus
+  `Patient.identifier` (z.B. Pseudonym oder PID). Nach DIMP ist `Patient.id` gehasht.
+
+## Optional: Ausschlüsse genauer nachprüfen
+
+Wer nachvollziehen will, ob die Ausschlüsse stimmen, kann zusätzlich `validate_consent_torch.py` auf den
+NDJSON-Dateien in `import/` laufen lassen. Dort liegen die Bundles immer ungedimpt, die IDs lassen sich
+also in den eigenen Quelldaten finden.
+
+```bash
+python3 /pfad/zu/refine_consent_cohort/validate_consent_torch.py \
+  --data jobs/<job>/import \
+  --crtdl <CRTDL.json> \
+  --encounter-shift on --shift-max-days <wie TORCH> \
+  --today <Exportdatum> \
+  --out-dir jobs/<job>/consent_report \
+  --inclusion-check
+```
+
+Beispiel, aufgerufen im Projektordner der DUP (`Skriptlibrary-FDPG` liegt auf Ebene der DUPs):
+
+```bash
+python3 ../Skriptlibrary-FDPG/refine_consent_cohort/validate_consent_torch.py \
+  --data jobs/20261021_1242_1a2b3c4d/import \
+  --crtdl PROJEKT_v01.json \
+  --encounter-shift on --shift-max-days 7 \
+  --today 2026-10-21 \
+  --out-dir jobs/20261021_1242_1a2b3c4d/consent_report \
+  --inclusion-check
+```
+
+Für `--inclusion-check` muss `filter_by_crtdl.py` im selben Ordner liegen, das Skript nutzt dessen
+Logik für die Einschlusskriterien. Ohne `--inclusion-check` läuft `validate_consent_torch.py` allein.
+
+`--encounter-shift` wie `TORCH_ENABLE_ENCOUNTER_SHIFT`, `--shift-max-days` wie
+`TORCH_ENCOUNTER_SHIFT_MAX_DAYS`. Die Prüfung bildet die Logik von **TORCH 1.0.3** nach, für ältere
+Versionen siehe [DETAILS_consent.md](docs/DETAILS_consent.md#4-parameter).
+
+Ergebnis in `jobs/<job>/consent_report/`:
+
+- `consent_summary.md`: Erwartet ist `✅ no violations`. Unter `Inclusion check` steht, wie viele
+  Patienten die Einschlusskriterien im Export nicht erfüllen. Das sollte etwa `X` aus der
+  Filterausgabe entsprechen.
+- `consent_inclusion.csv`: die ausgeschlossenen Patienten mit `Patient.id` vor DIMP und ihrem
+  Consent-Fenster. Damit lassen sich die einschließenden Diagnosen in den Quelldaten (ohne
+  Consent-Filter) nachsehen. Erwartet: Sie liegen vor `window_start`.
+- `consent_validation.log`: Protokoll des Laufs mit Parametern, Eingabedateien, Fortschritt, Laufzeit
+  und Speicherverbrauch. Bei einem Abbruch steht hier der Fehler. Enthält keine Patienten-IDs und kann
+  bei Problemen weitergegeben werden.
+
+**Bei Abbruch:** `consent_validation.log` ansehen. Steht am Ende kein Fehler, sondern bricht das Log
+einfach ab (auf der Konsole meist nur `Killed`), hat das System den Prozess beendet, meist wegen zu wenig
+Arbeitsspeicher. Die letzte Fortschrittszeile zeigt, wie weit das Skript kam und wie viel Speicher es
+bis dahin belegt hatte.
+
+Weitere Ausgaben und das Vorgehen: [DETAILS_consent.md](docs/DETAILS_consent.md).
+
+## Weiteres
+
+- `docs/`: ausführliche Beschreibung beider Skripte, `docs/pilotierung/`: Bericht zur Pilotierung
+- `development/`: Tests und künstliche Testdaten, nur nach Änderungen an den Skripten nötig
+  ([Tests](docs/DETAILS_filter.md#14-tests)). Dazu `filter_by_crtdl_dev.py` und
+  `validate_consent_torch_dev.py`, ressourcenschonendere Versionen mit gleichen Ergebnissen, noch im Test.
+  Bei Speicherproblemen mit großen Exporten können sie statt der Skripte oben genutzt werden.

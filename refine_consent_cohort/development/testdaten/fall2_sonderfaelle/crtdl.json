@@ -1,0 +1,5 @@
+{"cohortDefinition":{"inclusionCriteria":[
+ [{"termCodes":[{"code":"424144002","display":"Gegenwärtiges chronologisches Alter","system":"http://snomed.info/sct"}],"context":{"code":"Patient"}},
+  {"termCodes":[{"code":"G43","display":"Migräne","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}],"context":{"code":"Diagnose"}}],
+ [{"termCodes":[{"code":"R26","display":"Gangstörung","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}],"context":{"code":"Diagnose"},"timeRestriction":{"afterDate":"2020-01-01"}}]
+],"exclusionCriteria":[[{"termCodes":[{"code":"Z99","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}]}]]}}

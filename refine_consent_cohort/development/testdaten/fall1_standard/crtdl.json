@@ -1,0 +1,11 @@
+{"cohortDefinition":{"inclusionCriteria":[
+ [{"termCodes":[{"code":"2.16.840.1.113883.3.1937.777.24.5.3.8","display":"MDAT wissenschaftlich nutzen","system":"urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"}],"context":{"code":"Einwilligung","display":"Einwilligung"}}],
+ [{"termCodes":[{"code":"424144002","display":"Gegenwärtiges chronologisches Alter","system":"http://snomed.info/sct"}],"context":{"code":"Patient","display":"Patient"},"valueFilter":{"comparator":"gt","value":17}}],
+ [{"termCodes":[{"code":"G43","display":"Migräne","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}],"context":{"code":"Diagnose"}},
+  {"termCodes":[{"code":"I67.8","display":"Zerebrovask.","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}],"context":{"code":"Diagnose"}},
+  {"termCodes":[{"code":"3-10...3-13","display":"Roentgen","system":"http://fhir.de/CodeSystem/bfarm/ops"}],"context":{"code":"Prozedur"}}],
+ [{"termCodes":[{"code":"C07","display":"Betablocker","system":"http://fhir.de/CodeSystem/bfarm/atc"}],"context":{"code":"Medikamentenverabreichung"}}]
+]},
+"dataExtraction":{"attributeGroups":[
+ {"name":"MII PR Diagnose Condition"},{"name":"Primärdiagnose","includeReferenceOnly":true},
+ {"name":"MII PR Medikation Medication","includeReferenceOnly":true}]}}
