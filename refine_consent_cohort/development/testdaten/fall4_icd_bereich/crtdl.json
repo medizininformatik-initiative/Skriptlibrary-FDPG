@@ -1,0 +1,5 @@
+{"cohortDefinition":{"inclusionCriteria":[
+ [{"termCodes":[{"code":"F10-F19","display":"Psychische und Verhaltensstörungen durch psychotrope Substanzen","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}],"context":{"code":"Diagnose"}}],
+ [{"termCodes":[{"code":"A00-B99","display":"Bestimmte infektiöse und parasitäre Krankheiten","system":"http://fhir.de/CodeSystem/bfarm/icd-10-gm"}],"context":{"code":"Diagnose"}}]
+]},
+"dataExtraction":{"attributeGroups":[{"name":"MII PR Diagnose Condition"}]}}

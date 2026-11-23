@@ -21,7 +21,7 @@ import sys
 import time
 from collections import Counter, defaultdict
 
-VERSION = "2.1"
+VERSION = "2.2"
 
 # Criteria that cannot be checked by code search in the CSVs (consent, demography)
 CONSENT_CONTEXTS = {"einwilligung", "consent"}
@@ -71,6 +71,7 @@ def build_rule(code, system, exact_only):
     """
     Search rule for one CRTDL code, depending on its code system:
       icd    : 'R26' -> R26, R26.1, R26.10, R261 ; 'I67.8' -> I67.8, I67.88
+               range 'F10-F19' -> F10 ... F19.9 (also across letters, e.g. 'A00-B99')
       ops    : prefix ('8-93' -> 8-930, 8-931.0) or range ('3-10...3-13')
       prefix : ATC ('C07' -> C07AB02)
       exact  : everything else (LOINC, SNOMED, ...)
@@ -82,6 +83,12 @@ def build_rule(code, system, exact_only):
         start, end = [c.strip() for c in code.split("...", 1)]
         return ("range", start.replace(".", ""), end.replace(".", ""))
     if "icd-10" in s or "icd10" in s:
+        # ICD-10 range as written in some CRTDLs, e.g. 'F10-F19' or 'A00-B99':
+        # same comparison as for OPS ranges (leading part of the code between start and end).
+        # Checked only for ICD, so OPS codes like '8-93' are not taken as a range.
+        m = re.fullmatch(r"([A-Z]\d{2}(?:\.\d+)?)\s*-\s*([A-Z]\d{2}(?:\.\d+)?)", code)
+        if m:
+            return ("range", m.group(1).replace(".", ""), m.group(2).replace(".", ""))
         return ("icd", re.compile(rf"^{re.escape(code)}(?:\.?[0-9A-Za-z]+)?$"))
     if "/ops" in s:
         return ("ops", code.replace(".", ""))

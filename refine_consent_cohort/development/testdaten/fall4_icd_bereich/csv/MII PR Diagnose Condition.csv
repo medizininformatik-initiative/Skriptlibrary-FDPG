@@ -1,0 +1,12 @@
+id,patient,Condition_code_codingIcd10gm_code
+c1,Patient/p1,F10
+c2,Patient/p1,A00
+c3,Patient/p2,F13.1
+c4,Patient/p2,F19.9
+c5,Patient/p2,B99
+c6,Patient/p3,F09
+c7,Patient/p3,B20.1
+c8,Patient/p4,F20
+c9,Patient/p4,C00
+c10,Patient/p5,F191
+c11,Patient/p5,A09.0

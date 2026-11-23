@@ -127,7 +127,7 @@ großen Exporten.
 
 Dadurch schließt das Skript im Zweifel eher zu wenige als zu viele Patienten aus.
 
-Umsetzung: `filter_by_crtdl.py`, Funktion `parse_inclusion_groups` (ab Zeile 109).
+Umsetzung: `filter_by_crtdl.py`, Funktion `parse_inclusion_groups`.
 
 ---
 
@@ -138,6 +138,7 @@ Wie ein Code gesucht wird, hängt vom Codesystem (`system`) im `termCode` ab:
 | System | Regel | Beispiel |
 |---|---|---|
 | ICD-10-GM (`icd-10`/`icd10`) | Code und Unterkategorien, mit oder ohne Punkt | `R26` → `R26`, `R26.8`, `R268`; `I67.8` → `I67.88` |
+| ICD-10-GM-Bereich | `start-ende`, Grenzen eingeschlossen, auch über Buchstaben hinweg | `F10-F19` → `F10`, `F13.1`, `F19.9`, nicht `F09`/`F20`; `A00-B99` |
 | OPS (`/ops`) | Präfix, Punkte egal | `8-93` → `8-930`, `8-931.0` |
 | OPS-Bereich | `start...ende`, Grenzen eingeschlossen | `3-10...3-13` → `3-100`, `3-13x`, nicht `3-20x` |
 | ATC (`atc`) | Präfix | `C07` → `C07AB02` |

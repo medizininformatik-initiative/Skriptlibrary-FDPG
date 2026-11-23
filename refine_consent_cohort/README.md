@@ -74,10 +74,11 @@ ausgeschlossen. Das ist genau die Bereinigung, für die das Skript da ist.
   den Patienten aus, obwohl er die Diagnose im Export hat.
 
 Bei ICD, OPS und ATC passiert das nicht. Dort steckt die Hierarchie im Code selbst: `R26.8` beginnt mit
-`R26`, also erkennt das Skript `R26.8` als Unterbegriff von `R26`. Bei SNOMED und LOINC sieht man den
-Codes die Hierarchie nicht an, dafür bräuchte das Skript einen Terminologieserver. Nutzt eine CRTDL
-SNOMED- oder LOINC-Oberbegriffe (z.B. bei Bioproben oder Laborgruppen), die Ausschlüsse daher genau
-prüfen.
+`R26`, also erkennt das Skript `R26.8` als Unterbegriff von `R26`. Bereiche wie `F10-F19` (ICD) oder
+`3-10...3-13` (OPS) werden als Bereich ausgewertet: `F13.1` liegt zwischen `F10` und `F19` und gilt damit
+als Treffer. Bei SNOMED und LOINC sieht man den Codes die Hierarchie nicht an, dafür bräuchte das Skript
+einen Terminologieserver. Nutzt eine CRTDL SNOMED- oder LOINC-Oberbegriffe (z.B. bei Bioproben oder
+Laborgruppen), die Ausschlüsse daher genau prüfen.
 
 **Nicht berücksichtigt:** Manche Kriterien der CRTDL kann das Skript nicht prüfen. Sie werden
 aufgelistet und übersprungen, das ist so gewollt.

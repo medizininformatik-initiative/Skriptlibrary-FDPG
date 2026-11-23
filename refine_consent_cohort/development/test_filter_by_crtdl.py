@@ -18,6 +18,13 @@ SCRIPT = os.path.join(SCRIPTS, "filter_by_crtdl.py")
 CONSENT_SCRIPT = os.path.join(SCRIPTS, "validate_consent_torch.py")
 DATA = os.path.join(HERE, "testdaten")
 
+# make build_rule / rule_matches importable for the direct rule tests
+sys.path.insert(0, SCRIPTS)
+from filter_by_crtdl import build_rule, rule_matches  # noqa: E402
+
+ICD = "http://fhir.de/CodeSystem/bfarm/icd-10-gm"
+OPS = "http://fhir.de/CodeSystem/bfarm/ops"
+
 
 def run(case, *extra):
     """Run the filter on a test case; return (stdout, out_dir)."""
@@ -103,6 +110,55 @@ class Fall3Consent(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.out, "consent_inclusion.sql")))  # no site-specific SQL
         with open(os.path.join(self.out, "consent_summary.md"), encoding="utf-8") as fh:
             self.assertIn("**2 of 4 patients**", fh.read())
+
+
+class Fall4IcdBereich(unittest.TestCase):
+    """ICD ranges as written in some CRTDLs ('F10-F19', 'A00-B99'): bounds included, also across letters."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.stdout, cls.out = run("fall4_icd_bereich", "--no-include")
+
+    def test_rule_shown_as_range(self):
+        self.assertIn("F10-F19 [range]", self.stdout)
+        self.assertIn("A00-B99 [range]", self.stdout)
+
+    def test_found_codes(self):
+        # F09 and F20 are outside F10-F19, C00 is outside A00-B99
+        self.assertIn("gefundene Codes (4): F10, F13.1, F19.9, F191", self.stdout)
+        self.assertIn("gefundene Codes (4): A00, A09.0, B20.1, B99", self.stdout)
+
+    def test_excluded_patients(self):
+        # p3: only F09 (group 1); p4: F20 and C00 (groups 1 and 2)
+        self.assertEqual(excluded(self.out), {"p3": "1", "p4": "1,2"})
+
+
+class BuildRule(unittest.TestCase):
+    """Search rules directly, without test data."""
+
+    def test_icd_range(self):
+        rule = build_rule("F10-F19", ICD, False)
+        self.assertEqual(rule[0], "range")
+        for code in ("F10", "F10.0", "F13.1", "F19", "F19.9", "F191"):
+            self.assertTrue(rule_matches(rule, code), code)
+        for code in ("F09", "F09.9", "F20", "F1", "G10"):
+            self.assertFalse(rule_matches(rule, code), code)
+
+    def test_icd_range_with_dot(self):
+        rule = build_rule("F10.1-F10.3", ICD, False)
+        self.assertTrue(rule_matches(rule, "F10.2"))
+        self.assertTrue(rule_matches(rule, "F10.38"))
+        self.assertFalse(rule_matches(rule, "F10.4"))
+
+    def test_ops_with_dash_is_no_range(self):
+        # '8-93' contains a dash but is an OPS prefix, not a range
+        self.assertEqual(build_rule("8-93", OPS, False), ("ops", "8-93"))
+
+    def test_icd_single_code_unchanged(self):
+        self.assertEqual(build_rule("R26", ICD, False)[0], "icd")
+
+    def test_exact_only(self):
+        self.assertEqual(build_rule("F10-F19", ICD, True), ("exact", "F10-F19"))
 
 
 if __name__ == "__main__":
